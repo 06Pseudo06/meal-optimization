@@ -31,7 +31,9 @@ from app.api.log_routes import router as log_router
 app.include_router(log_router)
 
 
-from app.api import user_routes, log_routes, recommendation_routes
-app.include_router(user_routes.router)
-app.include_router(log_routes.router)
+from app.api import recommendation_routes
 app.include_router(recommendation_routes.router)
+
+
+from app.api.recipe_routes import router as recipe_router
+app.include_router(recipe_router)
