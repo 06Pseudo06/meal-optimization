@@ -1,0 +1,19 @@
+{
+    "meal_type": "hi",
+    "selected_meals": [
+        {
+            "food_id": "78",
+            "name": "bbib",
+            "servings": 78
+        }
+    ],
+    "total_nutrition": {
+        "calories": 62244,
+        "protein_g": 624,
+        "carbs_g": 624,
+        "fats_g": 6942
+    },
+    "cost_total": 702,
+    "score": 0.89,
+    "explanation_summary": "High protein alignment for muscle recovery within calorie constraint."
+}

@@ -1,0 +1,29 @@
+{
+
+ "meal_request":
+ {
+   "meal_type": "dinner",
+   "goal_context": "muscle_recovery",
+   "calorie_constraint":
+    {
+        "min": 300,
+        "max": 500
+    },
+
+    
+    "macro_constraints": {
+      "protein_min_g": 30,
+      "carbs_max_g": 50,
+      "fat_max_g": 10,
+      "fibre_min_g": 5
+    },
+
+    "ingredient_constraints": {
+      "required": ["eggs", "quinoa"],
+      "excluded": ["almonds"]
+    },
+
+    "macro_priority": "high_protein"
+  }
+    
+}

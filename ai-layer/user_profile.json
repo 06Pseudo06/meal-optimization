@@ -1,0 +1,28 @@
+{
+    "user_id" : "U102",
+    "personal_info" :
+    {
+        "age" :20,
+        "gender" : "Female",
+        "weight_kg" : 55,
+        "height_cm" : 165,
+        "activity_level" : "Moderate"
+    },
+
+
+    "fitness_goals" : "cut",
+
+    "dietary_preferences" : 
+    {
+        "diet_type" : "non_veg",
+        "allergies" : ["Peanuts", "Shellfish"],
+        "excluded_ingredients" : ["Broccoli", "Spinach"]  
+    },
+
+
+    "budget" : 
+    {
+        "daily_limit" : 250
+    }
+
+}

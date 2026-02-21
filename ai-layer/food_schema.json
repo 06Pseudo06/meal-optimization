@@ -1,0 +1,11 @@
+{
+    "id": "74",
+    "name": "frg",
+    "nutrition_per_serving": {
+        "calories": 566,
+        "protein_g": 44,
+        "carbs_g": 33,
+        "fat_g": 34,
+        "fibre_g": 44
+    }
+}
