@@ -9,9 +9,8 @@ def compute_features(recipe, request, recipe_ingredients: Set[str]) -> Dict[str,
 
     features: Dict[str, float] = {}
 
-    # --------------------------------------------------
-    # 1️⃣ Ingredient Match Ratio
-    # --------------------------------------------------
+    # 1️ Ingredient Match Ratio
+
     if request.ingredients:
         user_set = {ingredient.lower() for ingredient in request.ingredients}
 
@@ -24,9 +23,8 @@ def compute_features(recipe, request, recipe_ingredients: Set[str]) -> Dict[str,
         features["ingredient_match"] = 0.0
 
 
-    # --------------------------------------------------
-    # 2️⃣ Protein Alignment
-    # --------------------------------------------------
+    # 2️ Protein Alignment
+ 
     if request.protein_min:
         # If protein >= required → full score (1)
         features["protein_alignment"] = min(
@@ -37,9 +35,9 @@ def compute_features(recipe, request, recipe_ingredients: Set[str]) -> Dict[str,
         features["protein_alignment"] = min(recipe.protein / 100, 1.0)
 
 
-    # --------------------------------------------------
-    # 3️⃣ Calorie Alignment (inverse penalty)
-    # --------------------------------------------------
+
+    # 3️ Calorie Alignment (inverse penalty)
+
     if request.calorie_max:
         if request.calorie_max > 0:
             alignment = 1 - (recipe.calories / request.calorie_max)
@@ -50,9 +48,8 @@ def compute_features(recipe, request, recipe_ingredients: Set[str]) -> Dict[str,
         features["calorie_alignment"] = 1.0
 
 
-    # --------------------------------------------------
-    # 4️⃣ Goal Tag Match
-    # --------------------------------------------------
+    # 4️ Goal Tag Match
+
     if request.goal and recipe.tags:
         features["goal_tag_match"] = (
             1.0 if request.goal.lower() in recipe.tags.lower() else 0.0
@@ -61,9 +58,8 @@ def compute_features(recipe, request, recipe_ingredients: Set[str]) -> Dict[str,
         features["goal_tag_match"] = 0.0
 
 
-    # --------------------------------------------------
-    # 5️⃣ Macro Density (Protein Efficiency)
-    # --------------------------------------------------
+    # 5️ Macro Density (Protein Efficiency)
+
     if recipe.calories > 0:
         density = recipe.protein / recipe.calories
         # Scale roughly into 0–1 range (assuming 0.3 as high density)

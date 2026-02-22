@@ -18,9 +18,6 @@ class UserLogin(BaseModel):
 
 router = APIRouter(prefix="/user", tags=["User"])
 
-@router.post("/", response_model=UserResponse)
-def create_user_route(user: UserCreate, db: Session = Depends(get_db)):
-    return create_user(db, user)
 
 @router.get("/{user_id}", response_model=UserResponse)
 def get_user_route(user_id: int, db: Session = Depends(get_db)):
@@ -36,7 +33,7 @@ def login_user(user: LoginUser, db: Session = Depends(get_db)):
     if not db_user:
         raise HTTPException(status_code=404, detail="User not found")
 
-    if not verify_password(user.password, db_user.hashed_password):
+    if not verify_password(user.password, db_user.password_hash):
         raise HTTPException(status_code=401, detail="Password incorrect")
 
     return {

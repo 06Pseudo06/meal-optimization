@@ -1,6 +1,7 @@
 from sqlalchemy.orm import Session
 from passlib.context import CryptContext
 from app.models.auth_user import AuthUser
+from app.models.user import User
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
@@ -21,19 +22,29 @@ def create_auth_user(db: Session, user):
     hashed_password = get_password_hash(user.password)
 
     db_user = AuthUser(
-    first_name=user.first_name,
-    last_name=user.last_name,
-    age=user.age,
-    gender=user.gender,
-    phone=user.phone,
-    email=user.email,
-    password_hash=hashed_password,
-)
-
+        first_name=user.first_name,
+        last_name=user.last_name,
+        age=user.age,
+        gender=user.gender,
+        phone=user.phone,
+        email=user.email,
+        password_hash=hashed_password,
+    )
 
     db.add(db_user)
     db.commit()
     db.refresh(db_user)
+
+    # CREATE NUTRITION PROFILE
+    profile = User(
+        auth_user_id=db_user.id,
+        daily_calorie_target=0,
+        daily_protein_target=0,
+    )
+
+    db.add(profile)
+    db.commit()
+
     return db_user
 
 

@@ -23,11 +23,10 @@ app.add_middleware(
 def root():
     return {"status": "Backend running"}
 
-# Create tables
-Base.metadata.create_all(bind=engine)
 
 # Include routers
 app.include_router(user_router)
 app.include_router(log_router)
 app.include_router(recommendation_routes.router)
 app.include_router(recipe_router)
+
