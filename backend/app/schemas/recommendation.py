@@ -40,3 +40,8 @@ class RecommendationRequest(BaseModel):
         default=None,
         description="Breakfast, lunch, dinner, snack"
     )
+
+    query: Optional[str] = Field(
+    default=None,
+    description="Natural language meal request"
+    )

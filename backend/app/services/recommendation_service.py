@@ -12,7 +12,6 @@ from app.services.ranking_engine import compute_score
 
 
 def recommend_recipes(db: Session, request) -> List[Dict[str, Any]]:
-
     # Step 1: Apply constraints
     candidates = apply_constraints(db, request)
 
