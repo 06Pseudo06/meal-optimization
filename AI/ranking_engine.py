@@ -5,8 +5,8 @@ and returns ranked recommendations.
 """
 
 from typing import List, Dict
-from contracts.recipe_contract import RecipeContract
-from scoring_config import SCORING_WEIGHTS
+from AI.contracts.recipe_contract import RecipeContract
+from AI.scoring_config import SCORING_WEIGHTS
 
 
 def compute_score(features: Dict[str, float]) -> float:

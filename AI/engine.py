@@ -1,58 +1,81 @@
 """
-validator.py
-Input safety layer for AI engine.
-Ensures clean structured input before processing.
+engine.py
+AI orchestration layer.
+Pure decision engine entry point.
 """
 
-from typing import List
-from contracts.recipe_contract import RecipeContract
-from contracts.request_contract import RequestContract
+from typing import List, Dict
+
+from AI.contracts.recipe_contract import RecipeContract
+from AI.contracts.request_contract import RequestContract
+from AI.contracts.output_contract import RecommendationOutput
+from AI.validator import validate_request, validate_recipes
+from AI.constraint_engine import apply_constraints
+from AI.feature_engine import compute_features
+from AI.ranking_engine import rank_recipes
 
 
-class ValidationError(Exception):
-    """Custom validation exception."""
-    pass
-
-
-def validate_request(request: RequestContract) -> None:
+def generate_recommendations(
+    user: Dict,              # currently unused (future personalization)
+    recipes: List[Dict],
+    request: Dict
+) -> List[Dict]:
     """
-    Validates request contract.
-    """
-
-    # Example: calorie & protein must be positive if provided
-    if request.calorie_max is not None and request.calorie_max <= 0:
-        raise ValidationError("calorie_max must be positive.")
-
-    if request.protein_min is not None and request.protein_min <= 0:
-        raise ValidationError("protein_min must be positive.")
-
-    # Ingredients must be list if provided
-    if request.ingredients is not None and not isinstance(request.ingredients, list):
-        raise ValidationError("ingredients must be a list.")
-
-    # No malformed strings
-    if request.diet_type is not None and not isinstance(request.diet_type, str):
-        raise ValidationError("diet_type must be a string.")
-
-
-def validate_recipes(recipes: List[RecipeContract]) -> None:
-    """
-    Validates recipe list before engine processing.
+    Main AI entry point.
+    Returns plain list of recommendations.
     """
 
-    if not isinstance(recipes, list):
-        raise ValidationError("recipes must be a list.")
+    # Convert request to contract
+    request_contract = RequestContract(**request)
 
-    for recipe in recipes:
+    # Convert recipes to contracts
+    recipe_contracts = [RecipeContract(**r) for r in recipes]
 
-        if recipe.id is None:
-            raise ValidationError("Recipe ID missing.")
+    # Validate input
+    validate_request(request_contract)
+    validate_recipes(recipe_contracts)
 
-        if not isinstance(recipe.calories, (int, float)):
-            raise ValidationError(f"Invalid calories for recipe {recipe.name}")
+    # Apply hard constraints
+    filtered = apply_constraints(
+        recipes=[r.model_dump() for r in recipe_contracts],
+        request=request_contract
+    )
 
-        if not isinstance(recipe.protein, (int, float)):
-            raise ValidationError(f"Invalid protein value for recipe {recipe.name}")
+    if not filtered:
+        return []
 
-        if recipe.calories < 0 or recipe.protein < 0:
-            raise ValidationError(f"Negative macro value in recipe {recipe.name}")
+    # Convert filtered dicts back to RecipeContract
+    filtered_contracts = [RecipeContract(**r) for r in filtered]
+
+    # Compute features
+    recipe_feature_pairs = []
+
+    for recipe in filtered_contracts:
+        features = compute_features(recipe, request_contract)
+
+        recipe_feature_pairs.append({
+            "recipe": recipe,
+            "features": features
+        })
+
+    # Rank recipes
+    ranked = rank_recipes(recipe_feature_pairs)
+
+    # Format final output (NO wrapper object)
+    results = []
+
+    for item in ranked:
+        recipe = item["recipe"]
+        features = item["features"]
+        score = item["score"]
+
+        results.append({
+            "id": recipe.id,
+            "name": recipe.name,
+            "calories": recipe.calories,
+            "protein": recipe.protein,
+            "score": score,
+            "explanation": features   # IMPORTANT: explanation not features
+        })
+
+    return results

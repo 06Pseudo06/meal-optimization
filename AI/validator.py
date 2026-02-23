@@ -5,8 +5,8 @@ Ensures clean structured input before processing.
 """
 
 from typing import List
-from contracts.recipe_contract import RecipeContract
-from contracts.request_contract import RequestContract
+from AI.contracts.recipe_contract import RecipeContract
+from AI.contracts.request_contract import RequestContract
 
 
 class ValidationError(Exception):

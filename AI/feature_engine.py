@@ -4,8 +4,8 @@ Converts recipe + request into normalized numeric signals (0–1).
 """
 
 from typing import Dict
-from contracts.recipe_contract import RecipeContract
-from contracts.request_contract import RequestContract
+from AI.contracts.recipe_contract import RecipeContract
+from AI.contracts.request_contract import RequestContract
 
 
 def compute_features(

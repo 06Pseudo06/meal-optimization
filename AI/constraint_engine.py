@@ -4,7 +4,7 @@ Removes recipes that do not satisfy mandatory constraints.
 """
 
 from typing import List, Dict
-from contracts.request_contract import RequestContract
+from AI.contracts.request_contract import RequestContract
 
 
 def apply_constraints(

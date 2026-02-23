@@ -6,21 +6,20 @@ from app.models.association import RecipeIngredient
 from app.models.ingredient import Ingredient
 from app.models.recommendation_log import RecommendationLog
 
-from app.services.constraint_service import apply_constraints
-from app.services.feature_service import compute_features
-from app.services.ranking_engine import compute_score
+from AI.engine import generate_recommendations
 
 
 def recommend_recipes(db: Session, request) -> List[Dict[str, Any]]:
-    # Step 1: Apply constraints
-    candidates = apply_constraints(db, request)
 
-    if not candidates:
+    # 1️ Fetch all recipes
+    recipes = db.query(Recipe).all()
+
+    if not recipes:
         return []
 
-    recipe_ids = [r.id for r in candidates]
+    recipe_ids = [r.id for r in recipes]
 
-    # Step 2: Fetch all ingredient mappings in ONE query
+    # 2️ Fetch ingredient mappings in one query (keep your optimization)
     mappings = (
         db.query(RecipeIngredient.recipe_id, Ingredient.name)
         .join(Ingredient)
@@ -28,37 +27,40 @@ def recommend_recipes(db: Session, request) -> List[Dict[str, Any]]:
         .all()
     )
 
-    # Step 3: Build mapping dict
+    # 3️ Build ingredient map
     recipe_ingredient_map = {}
 
     for recipe_id, ingredient_name in mappings:
-        recipe_ingredient_map.setdefault(recipe_id, set()).add(ingredient_name.lower())
+        recipe_ingredient_map.setdefault(recipe_id, []).append(ingredient_name)
 
-    # Step 4: Compute ranking
-    ranked = []
+    # 4️ Serialize recipes for AI
+    recipe_dicts = []
 
-    for recipe in candidates:
+    for recipe in recipes:
 
-        recipe_ingredients = recipe_ingredient_map.get(recipe.id, set())
+        recipe_dict = {
+            "id": recipe.id,
+            "name": recipe.name,
+            "calories": recipe.calories,
+            "protein": recipe.protein,
+            "carbs": recipe.carbs,
+            "fats": recipe.fats,
+            "diet_type": recipe.diet_type,
+            "ingredients": recipe_ingredient_map.get(recipe.id, []),
+            "tags": recipe.tags,
+        }
 
-        features = compute_features(
-            recipe=recipe,
-            request=request,
-            recipe_ingredients=recipe_ingredients
-        )
+        recipe_dicts.append(recipe_dict)
 
-        final_score = compute_score(features)
-        ranked.append((recipe, final_score, features))
+    # 5️ Call AI layer
+    results = generate_recommendations(
+        user={},  # future use
+        recipes=recipe_dicts,
+        request=request.model_dump()
+    )
 
-    ranked.sort(key=lambda x: x[1], reverse=True)
-
-    top_recipes = ranked[:5]
-
-    # Extract recommended IDs
-    recommended_ids = [recipe.id for recipe, _, _ in top_recipes]
-
-    # Save log BEFORE returning
-
+    # 6️ Log recommendations
+    recommended_ids = [r["id"] for r in results]
 
     log_entry = RecommendationLog(
         request_payload=request.model_dump(),
@@ -68,17 +70,4 @@ def recommend_recipes(db: Session, request) -> List[Dict[str, Any]]:
     db.add(log_entry)
     db.commit()
 
-    return [
-        {
-            "id": recipe.id,
-            "name": recipe.name,
-            "calories": recipe.calories,
-            "protein": recipe.protein,
-            "score": round(score, 3),
-            "explanation": {
-                key: round(value, 3)
-                for key, value in features.items()
-            }
-        }   
-        for recipe, score, features in top_recipes
-    ]
+    return results

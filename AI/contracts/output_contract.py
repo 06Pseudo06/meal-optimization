@@ -21,8 +21,4 @@ class RecommendationOutput(BaseModel):
     calories: float
     protein: float
     score: float
-    features: FeatureBreakdown
-
-
-class EngineResponse(BaseModel):
-    recommendations: List[RecommendationOutput]
+    explanation: FeatureBreakdown
