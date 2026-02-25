@@ -79,3 +79,4 @@ def generate_recommendations(
         })
 
     return results
+

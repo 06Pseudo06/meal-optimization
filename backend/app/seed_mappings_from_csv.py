@@ -5,6 +5,13 @@ from app.models.ingredient import Ingredient
 from app.models.association import RecipeIngredient
 from pathlib import Path
 
+# Force model registration
+import app.models.auth_user
+import app.models.user
+import app.models.recipe
+import app.models.ingredient
+import app.models.association
+
 
 def seed_mappings():
 

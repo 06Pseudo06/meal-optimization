@@ -2,6 +2,13 @@ import os
 import pandas as pd
 from sqlalchemy.orm import Session
 
+# Force model registration
+import app.models.auth_user
+import app.models.user
+import app.models.recipe
+import app.models.ingredient
+import app.models.association
+
 from app.core.database import SessionLocal
 from app.models.recipe import Recipe
 
