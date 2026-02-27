@@ -6,13 +6,13 @@ Pure decision engine entry point.
 
 from typing import List, Dict
 
-from AI.contracts.recipe_contract import RecipeContract
-from AI.contracts.request_contract import RequestContract
-from AI.contracts.output_contract import RecommendationOutput
-from AI.validator import validate_request, validate_recipes
-from AI.constraint_engine import apply_constraints
-from AI.feature_engine import compute_features
-from AI.ranking_engine import rank_recipes
+from app.ai.contracts.recipe_contract import RecipeContract
+from app.ai.contracts.request_contract import RequestContract
+from app.ai.contracts.output_contract import RecommendationOutput
+from app.ai.validator import validate_request, validate_recipes
+from app.ai.constraint_engine import apply_constraints
+from app.ai.feature_engine import compute_features
+from app.ai.ranking_engine import rank_recipes
 
 
 def generate_recommendations(
@@ -41,6 +41,8 @@ def generate_recommendations(
         request=request_contract
     )
 
+
+
     if not filtered:
         return []
 
@@ -51,7 +53,7 @@ def generate_recommendations(
     recipe_feature_pairs = []
 
     for recipe in filtered_contracts:
-        features = compute_features(recipe, request_contract)
+        features = compute_features(recipe, request_contract, user)
 
         recipe_feature_pairs.append({
             "recipe": recipe,

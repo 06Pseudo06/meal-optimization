@@ -7,9 +7,9 @@ No algorithmic logic here.
 """
 
 SCORING_WEIGHTS = {
-    "ingredient_match": 0.35,
-    "protein_alignment": 0.25,
-    "calorie_alignment": 0.20,
-    "goal_tag_match": 0.15,
-    "macro_density": 0.05,
+    "ingredient_match": 0.15,
+    "protein_alignment": 0.30,
+    "calorie_alignment": 0.30,
+    "goal_tag_match": 0.10,
+    "macro_density": 0.15,
 }

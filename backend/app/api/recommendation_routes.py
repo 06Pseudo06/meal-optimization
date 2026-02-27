@@ -8,5 +8,5 @@ router = APIRouter(prefix="/recipes", tags=["Recommendations"])
 
 
 @router.post("/recommend")
-def recommend(request: RecommendationRequest, db: Session = Depends(get_db)):
-    return recommend_recipes(db, request)
+def recommend(request: RecommendationRequest, user_id: int, db: Session = Depends(get_db)):
+    return recommend_recipes(db, request, user_id)

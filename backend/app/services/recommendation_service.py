@@ -5,14 +5,32 @@ from app.models.recipe import Recipe
 from app.models.association import RecipeIngredient
 from app.models.ingredient import Ingredient
 from app.models.recommendation_log import RecommendationLog
+from app.models.user import User
 
-from AI.engine import generate_recommendations
+from app.ai.engine import generate_recommendations
 
 
-def recommend_recipes(db: Session, request) -> List[Dict[str, Any]]:
+def recommend_recipes(db: Session, request, user_id: int) -> List[Dict[str, Any]]:
+
+    # 0 Fetch user profile
+    user_profile = (
+        db.query(User)
+        .filter(User.id == user_id)
+        .first()
+    )
+
+    if not user_profile:
+        return []
+    
+    # Serialize 
+    user_dict = {
+    "daily_calorie_target": user_profile.daily_calorie_target,
+    "daily_protein_target": user_profile.daily_protein_target
+    }
 
     # 1️ Fetch all recipes
     recipes = db.query(Recipe).all()
+  
 
     if not recipes:
         return []
@@ -54,7 +72,7 @@ def recommend_recipes(db: Session, request) -> List[Dict[str, Any]]:
 
     # 5️ Call AI layer
     results = generate_recommendations(
-        user={},  # future use
+        user=user_dict,  
         recipes=recipe_dicts,
         request=request.model_dump()
     )
