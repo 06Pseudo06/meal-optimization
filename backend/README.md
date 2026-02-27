@@ -83,9 +83,6 @@ Each user has a `daily_calorie_target` and a `daily_protein_target`. Recipes are
 * Goal tag relevance
 * Macro density efficiency
 
-### Scoring Formula
-
-$$score = w_1 \cdot \text{ingredient\_match} + w_2 \cdot \text{protein\_alignment} + w_3 \cdot \text{calorie\_alignment} + w_4 \cdot \text{goal\_tag\_match} + w_5 \cdot \text{macro\_density}$$
 
 Weights are centrally defined in `app/ai/scoring_config.py`.
 
