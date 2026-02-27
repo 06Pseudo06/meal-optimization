@@ -1,6 +1,5 @@
 Here is the content converted into a clean, fully-formatted **README.md**. You can copy the block below directly into your file.
 
-```markdown
 # Meal Optimization Backend
 
 AI-driven personalized meal recommendation engine built with **FastAPI**, **PostgreSQL**, and a deterministic optimization layer.
