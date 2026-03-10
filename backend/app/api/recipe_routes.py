@@ -3,15 +3,51 @@ from sqlalchemy.orm import Session
 from typing import List
 
 from app.core.database import get_db
-from app.schemas.recipes import RecipeCreate, RecipeUpdate, RecipeOut
+from app.models.recipe import Recipe
+from app.schemas.recipes import RecipeCreate, RecipeUpdate, RecipeOut, RecipeBase
 from app.crud import recipes as crud_recipe
+from app.schemas.recipes import RecipePagination
 
 router = APIRouter(prefix="/recipes", tags=["Recipes"])
 
+@router.get("/", response_model=RecipePagination)
+def get_recipes(
+    limit: int = 20,
+    offset: int = 0,
+    db: Session = Depends(get_db)
+):
+    limit = min(limit, 100)
 
-@router.get("/", response_model=List[RecipeOut])
-def get_recipes(db: Session = Depends(get_db)):
-    return crud_recipe.get_all_recipes(db)
+    recipes = db.query(Recipe).offset(offset).limit(limit).all()
+    total = db.query(Recipe).count()
+
+    return {
+        "total": total,
+        "limit": limit,
+        "offset": offset,
+        "data": recipes
+    }
+
+
+
+@router.get("/", response_model=RecipePagination)
+def get_recipes(
+    limit: int = 20,
+    offset: int = 0,
+    db: Session = Depends(get_db)
+):
+    limit = min(limit, 100)
+
+    recipes = db.query(Recipe).offset(offset).limit(limit).all()
+    total = db.query(Recipe).count()
+
+    return {
+        "total": total,
+        "limit": limit,
+        "offset": offset,
+        "data": recipes,
+        "data": recipes
+    }
 
 
 @router.get("/{recipe_id}", response_model=RecipeOut)

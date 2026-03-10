@@ -1,5 +1,7 @@
 from pydantic import BaseModel
 from typing import Optional
+from typing import List
+
 
 
 
@@ -33,3 +35,10 @@ class RecipeOut(RecipeBase):
 
     class Config:
         from_attributes = True
+
+
+class RecipePagination(BaseModel):
+    total: int
+    limit: int
+    offset: int
+    data: List[RecipeOut]

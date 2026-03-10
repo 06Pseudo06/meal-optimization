@@ -1,6 +1,11 @@
 from sqlalchemy import Column, Integer, String, Float
 from sqlalchemy.orm import relationship
 from app.core.database import Base
+from sqlalchemy import Index
+
+__table_args__ = (
+    Index("idx_recipe_diet", "diet_type"),
+)
 
 class Recipe(Base):
     __tablename__ = "recipes"

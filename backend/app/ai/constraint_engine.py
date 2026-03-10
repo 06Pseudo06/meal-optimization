@@ -19,22 +19,22 @@ def apply_constraints(
 
     for recipe in recipes:
 
-        # 1️⃣ Calorie Constraint
+        # 1️ Calorie Constraint
         if request.calorie_max is not None:
             if recipe.get("calories", 0) > request.calorie_max:
                 continue
 
-        # 2️⃣ Protein Constraint
+        # 2️ Protein Constraint
         if request.protein_min is not None:
             if recipe.get("protein", 0) < request.protein_min:
                 continue
 
-        # 3️⃣ Diet Type Constraint
+        # 3️ Diet Type Constraint
         if request.diet_type is not None:
             if recipe.get("diet_type") != request.diet_type:
                 continue
 
-        # 4️⃣ Ingredient Constraint
+        # 4️ Ingredient Constraint
         if request.ingredients:
             recipe_ingredients = {
                 i.lower() for i in recipe.get("ingredients", [])
@@ -44,17 +44,17 @@ def apply_constraints(
             if not required.issubset(recipe_ingredients):
                 continue
 
-        # 5️⃣ Goal Constraint
+        # 5️ Goal Constraint
         if request.goal:
             if request.goal.lower() not in recipe.get("tags", "").lower():
                 continue
 
-        # 6️⃣ Mood Constraint
+        # 6️ Mood Constraint
         if request.mood:
             if request.mood.lower() not in recipe.get("tags", "").lower():
                 continue
 
-        # 7️⃣ Time of Day Constraint
+        # 7️ Time of Day Constraint
         if request.time_of_day:
             if request.time_of_day.lower() not in recipe.get("tags", "").lower():
                 continue

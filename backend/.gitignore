@@ -13,8 +13,13 @@ venv/
 .DS_Store
 Thumbs.db
 
-# VS Code
+# IDE
 .vscode/
+.idea/
 
 # Logs
+*.log
+
+# Docker
+postgres_data/
 *.log

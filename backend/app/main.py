@@ -8,6 +8,7 @@ from app.api.user_routes import router as user_router
 from app.api.log_routes import router as log_router
 from app.api.recipe_routes import router as recipe_router
 from app.api import recommendation_routes
+from app.api import system
 
 app = FastAPI(title="Meal Optimization API")
 
@@ -29,4 +30,5 @@ app.include_router(user_router)
 app.include_router(log_router)
 app.include_router(recommendation_routes.router)
 app.include_router(recipe_router)
+app.include_router(system.router, tags=["system"])
 
