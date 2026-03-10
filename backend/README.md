@@ -1,265 +1,146 @@
+---
+
 # 🍽️ Meal Optimization Backend
 
-![Python](https://img.shields.io/badge/Python-3.11-blue)
-![FastAPI](https://img.shields.io/badge/FastAPI-Backend-green)
-![PostgreSQL](https://img.shields.io/badge/PostgreSQL-Database-blue)
-![Docker](https://img.shields.io/badge/Docker-Containerized-blue)
-![Status](https://img.shields.io/badge/Status-Stable-success)
-
-AI-driven personalized meal recommendation backend built with **FastAPI**, **PostgreSQL**, and a deterministic optimization engine.
+An AI-driven personalized meal recommendation engine built with **FastAPI**, **PostgreSQL**, and a deterministic optimization core.
 
 ---
 
-# 📌 Overview
+## 📌 Overview
 
-This backend powers a **personalized nutrition recommendation system** that ranks recipes based on user-specific calorie and protein targets.
+This backend powers a **personalized nutrition recommendation system** that ranks recipes based on user-specific caloric and macronutrient targets.
 
-The system is designed with strict separation of responsibilities:
+### Architectural Layers
 
 | Layer | Responsibility |
-|------|------|
-| Backend | API routes, orchestration, database access |
-| AI Engine | Deterministic ranking logic |
-| Database | Persistent storage and logging |
+| --- | --- |
+| **API Backend** | Route handling, orchestration, and DB persistence |
+| **AI Engine** | Stateless, deterministic ranking and constraint logic |
+| **Database** | Relational storage for profiles, recipes, and logs |
 
-The recommendation engine is currently **fully deterministic** and does **not rely on machine learning models**.
-
----
-
-# ⚙️ Core Capabilities
-
-- User authentication & profile management
-- Personalized calorie & protein targets
-- Recipe & ingredient management
-- Constraint-based filtering
-- Weighted multi-factor ranking
-- Automatic database migrations
-- Automated seed dataset loading
-- Dockerized development environment
-- Structured recommendation logging
+> [!IMPORTANT]
+> **Design Principle:** The AI engine is strictly **stateless**. It never accesses the database directly; it receives structured features and returns ranked outputs to the service layer.
 
 ---
 
-# 🧠 System Architecture
+## 🧠 System Architecture
 
+### Logic Flow
 
-Client Request
-↓
-FastAPI Route
-↓
-Service Layer
-↓
-AI Engine (Stateless)
-↓
-Ranked Recommendations
-↓
-JSON Response
-
-
-Important design principle:
-
-> The **AI engine never accesses the database directly**.  
-> It only receives structured features and returns ranked outputs.
+1. **Client Request**: User submits preferences or a recommendation trigger.
+2. **Service Layer**: Fetches relevant candidate recipes and user profile data from PostgreSQL.
+3. **AI Engine**: Processes features (Protein, Calories, Ingredients) using weighted logic.
+4. **Ranking**: Returns a sorted list of recipes with scoring explanations.
+5. **Response**: FastAPI delivers a structured JSON payload to the client.
 
 ---
 
-# 📁 Project Structure
+## 📁 Project Structure
 
-
+```text
 backend/
-│
 ├── app/
-│ ├── api/ # FastAPI routes
-│ ├── core/ # Config & database setup
-│ ├── crud/ # Database operations
-│ ├── models/ # SQLAlchemy models
-│ ├── schemas/ # Pydantic schemas
-│ ├── services/ # Business logic layer
-│ │
-│ ├── ai/ # Recommendation engine
-│ │ ├── engine.py
-│ │ ├── feature_engine.py
-│ │ ├── ranking_engine.py
-│ │ ├── constraint_engine.py
-│ │ └── scoring_config.py
-│ │
-│ └── seed/ # Dataset initialization
-│ ├── seed_recipes.py
-│ ├── seed_ingredients.py
-│ ├── seed_mappings.py
-│ └── run_seeds.py
-│
-├── alembic/ # Database migrations
-├── data/ # CSV datasets
-├── start.sh # Container startup pipeline
-├── Dockerfile
-├── docker-compose.yml
-├── requirements.txt
-└── README.md
+│   ├── api/             # FastAPI route definitions
+│   ├── core/            # Global config & DB session management
+│   ├── crud/            # SQL Alchemy CRUD operations
+│   ├── models/          # Database schemas (SQLAlchemy)
+│   ├── schemas/         # Data validation (Pydantic)
+│   ├── services/        # Business logic & AI orchestration
+│   ├── ai/              # The "Brain": Ranking & Scoring logic
+│   │   ├── engine.py
+│   │   ├── ranking_engine.py
+│   │   └── scoring_config.py
+│   └── seed/            # Data initialization scripts
+├── alembic/             # Database migration history
+├── data/                # Source CSV datasets
+└── docker-compose.yml   # Multi-container orchestration
 
+```
 
 ---
 
-# 🍗 Recommendation Logic
+## 🍗 Recommendation Logic
 
-Each user profile defines:
+The engine calculates a multi-factor score for each recipe based on the following signals:
 
+| Feature | Scoring Logic |
+| --- | --- |
+| **Ingredient Match** | Jaccard similarity between user pantry and recipe requirements |
+| **Protein Alignment** | L1 distance from `daily_protein_target` |
+| **Calorie Alignment** | Proximity to `daily_calorie_target` |
+| **Goal Tag Match** | Binary check against user goals (e.g., "Muscle Gain", "Keto") |
+| **Macro Density** | Nutritional efficiency (Protein-to-Calorie ratio) |
 
-daily_calorie_target
-daily_protein_target
-
-
-Recipes are ranked using normalized feature signals.
-
-| Feature | Description |
-|------|------|
-| Ingredient Match | Overlap between user ingredients and recipe ingredients |
-| Protein Alignment | Distance from protein target |
-| Calorie Alignment | Distance from calorie target |
-| Goal Tag Match | Goal-based tag relevance |
-| Macro Density | Nutritional efficiency score |
-
-Weights are centrally defined in:
-
-
-app/ai/scoring_config.py
-
+Weights are centrally managed in `app/ai/scoring_config.py` for easy tuning without code changes.
 
 ---
 
-# 🗄️ Database Models
+## 🚀 Getting Started
 
-| Model | Description |
-|------|------|
-| **AuthUser** | Authentication identity |
-| **User** | Nutrition profile |
-| **Recipe** | Nutrition values & metadata |
-| **Ingredient** | Ingredient catalog |
-| **RecipeIngredient** | Recipe ↔ Ingredient mapping |
-| **RecommendationLog** | Logs recommendation events |
-| **DailyLog** | Tracks daily activity |
-
----
-
-# 🚀 Running the Backend
-
-## 1️⃣ Start the System
+### 1️⃣ Start the System
 
 ```bash
 docker compose up --build
 
-Startup pipeline:
+```
 
-PostgreSQL container starts
-        ↓
-Healthcheck confirms DB ready
-        ↓
-Backend container starts
-        ↓
-Alembic migrations run
-        ↓
-Seed dataset loads
-        ↓
-FastAPI server starts
-2️⃣ Stop Containers
-docker compose down
-3️⃣ Reset Database (Destructive)
-docker compose down -v
-docker compose up --build
+**Startup Pipeline:**
 
-This removes the database volume and rebuilds everything.
+1. **PostgreSQL**: Container initializes and runs health checks.
+2. **Migrations**: `Alembic` applies latest schema changes.
+3. **Seeding**: `run_seeds.py` populates recipes and ingredients from CSVs.
+4. **Server**: Uvicorn starts the FastAPI application.
 
-📚 API Documentation
+### 2️⃣ API Exploration
 
-Swagger UI:
+Once running, access the interactive documentation at:
 
-http://localhost:8000/docs
-📥 Example Recommendation Request
+* **Swagger UI**: [http://localhost:8000/docs](https://www.google.com/search?q=http://localhost:8000/docs)
+* **ReDoc**: [http://localhost:8000/redoc](https://www.google.com/search?q=http://localhost:8000/redoc)
 
-Endpoint:
+---
 
-POST /recipes/recommend
+## 📥 Example Request
 
-Query Parameter:
+**Endpoint:** `POST /recipes/recommend?user_id=1`
 
-user_id: integer
-Request Body
+**Request Body:**
+
+```json
 {
   "ingredients": ["chicken", "rice"],
   "protein_min": 20,
   "calorie_max": 800,
   "goal": "muscle"
 }
-Example Response
+
+```
+
+**Example Response:**
+
+```json
 [
   {
     "id": 18,
     "name": "Chicken Biryani",
-    "calories": 750,
-    "protein": 38,
-    "score": 0.496583,
+    "score": 0.895,
     "explanation": {
-      "ingredient_match": 0,
-      "protein_alignment": 0.6333,
-      "calorie_alignment": 0.9375,
-      "goal_tag_match": 0,
-      "macro_density": 0.1688
+      "protein_alignment": 0.93,
+      "calorie_alignment": 0.85,
+      "ingredient_match": 0.90
     }
   }
 ]
-🖥 Database GUI
-
-pgAdmin is included for database inspection.
-
-Open:
-
-http://localhost:5050
-
-Login:
-
-Email: admin@meal.com
-Password: admin
-
-Database host inside Docker network:
-
-db
-🌱 Environment Variables
-
-Example .env
-
-DATABASE_URL=postgresql://postgres:postgres@db:5432/meal_optimization
-🧩 Design Principles
-
-Deterministic optimization
-
-Strict separation of backend and AI logic
-
-Stateless AI engine
-
-Docker-first development
-
-Centralized scoring configuration
-
-Expandable architecture for ML integration
-
-🔮 Future Enhancements
-
-Planned improvements:
-
-Structured explainability layer
-
-Automatic profile creation during registration
-
-Feedback-based adaptive scoring
-
-Multi-meal daily optimization
-
-ML-based ranking models
-
-📊 Status
-
-✅ Backend infrastructure stable
-✅ Recommendation engine functional
-✅ Dockerized development environment
 
 ```
+
+---
+
+## 🔮 Future Roadmap
+
+* **Feedback Loop**: Implement an adaptive scoring layer based on user "dislike/like" history.
+* **Explainability**: Enhanced natural language explanations for *why* a meal was recommended.
+* **Multi-Meal Optimization**: Generating full-day meal plans that hit exact daily totals.
+* **ML Integration**: Transition from deterministic weights to a Learning-to-Rank (LTR) model.
+
+---
