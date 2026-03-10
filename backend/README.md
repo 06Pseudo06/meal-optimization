@@ -1,156 +1,196 @@
-Here is the content converted into a clean, fully-formatted **README.md**. You can copy the block below directly into your file.
+# 🍽️ Meal Optimization Backend
 
-# Meal Optimization Backend
+![Python](https://img.shields.io/badge/Python-3.11-blue)
+![FastAPI](https://img.shields.io/badge/FastAPI-Backend-green)
+![PostgreSQL](https://img.shields.io/badge/PostgreSQL-Database-blue)
+![Docker](https://img.shields.io/badge/Docker-Containerized-blue)
+![Status](https://img.shields.io/badge/Status-Stable-success)
 
-AI-driven personalized meal recommendation engine built with **FastAPI**, **PostgreSQL**, and a deterministic optimization layer.
-
----
-
-## Overview
-
-This backend powers a personalized nutrition recommendation system that ranks recipes based on user-specific calorie and protein targets.
-
-The system is designed with strict separation of concerns:
-
-* **Backend Layer** → API, database, orchestration
-* **AI Layer** → Pure deterministic optimization logic
-* **Database Layer** → Persistent storage and logging
-
-> **Note:** The recommendation engine is fully deterministic and does not rely on machine learning models (yet).
+AI-driven personalized meal recommendation backend built with **FastAPI**, **PostgreSQL**, and a deterministic optimization engine.
 
 ---
 
-## Core Capabilities
+# 📌 Overview
 
-* User authentication & profile management
-* Personalized calorie & protein targets
-* Recipe & ingredient management
-* Constraint-based filtering
-* Weighted multi-factor ranking
-* Dockerized environment
-* Structured recommendation logging
+This backend powers a **personalized nutrition recommendation system** that ranks recipes based on user-specific calorie and protein targets.
 
----
+The system is designed with strict separation of responsibilities:
 
-## Architecture
+| Layer | Responsibility |
+|------|------|
+| Backend | API routes, orchestration, database access |
+| AI Engine | Deterministic ranking logic |
+| Database | Persistent storage and logging |
 
-1.  **Client Request**
-2.  **FastAPI Route**
-3.  **Service Layer**
-4.  **AI Engine (Pure Computation)**
-5.  **Ranked Recommendations**
-6.  **JSON Response**
-
-The AI engine does not access the database and remains fully stateless.
+The recommendation engine is currently **fully deterministic** and does **not rely on machine learning models**.
 
 ---
 
-## Project Structure
+# ⚙️ Core Capabilities
 
-```text
+- User authentication & profile management
+- Personalized calorie & protein targets
+- Recipe & ingredient management
+- Constraint-based filtering
+- Weighted multi-factor ranking
+- Automatic database migrations
+- Automated seed dataset loading
+- Dockerized development environment
+- Structured recommendation logging
+
+---
+
+# 🧠 System Architecture
+
+
+Client Request
+↓
+FastAPI Route
+↓
+Service Layer
+↓
+AI Engine (Stateless)
+↓
+Ranked Recommendations
+↓
+JSON Response
+
+
+Important design principle:
+
+> The **AI engine never accesses the database directly**.  
+> It only receives structured features and returns ranked outputs.
+
+---
+
+# 📁 Project Structure
+
+
 backend/
+│
 ├── app/
-│   ├── api/                # FastAPI routes
-│   ├── core/               # Config & database setup
-│   ├── crud/               # Database operations
-│   ├── models/             # SQLAlchemy models
-│   ├── schemas/            # Pydantic schemas
-│   ├── services/           # Orchestration layer
-│   └── ai/                 # AI decision engine
-│       ├── engine.py
-│       ├── feature_engine.py
-│       ├── ranking_engine.py
-│       ├── constraint_engine.py
-│       ├── scoring_config.py
-│       └── contracts/
-├── alembic/                # Database migrations
+│ ├── api/ # FastAPI routes
+│ ├── core/ # Config & database setup
+│ ├── crud/ # Database operations
+│ ├── models/ # SQLAlchemy models
+│ ├── schemas/ # Pydantic schemas
+│ ├── services/ # Business logic layer
+│ │
+│ ├── ai/ # Recommendation engine
+│ │ ├── engine.py
+│ │ ├── feature_engine.py
+│ │ ├── ranking_engine.py
+│ │ ├── constraint_engine.py
+│ │ └── scoring_config.py
+│ │
+│ └── seed/ # Dataset initialization
+│ ├── seed_recipes.py
+│ ├── seed_ingredients.py
+│ ├── seed_mappings.py
+│ └── run_seeds.py
+│
+├── alembic/ # Database migrations
+├── data/ # CSV datasets
+├── start.sh # Container startup pipeline
 ├── Dockerfile
 ├── docker-compose.yml
 ├── requirements.txt
 └── README.md
 
-```
 
 ---
 
-## Personalized Recommendation Logic
+# 🍗 Recommendation Logic
 
-Each user has a `daily_calorie_target` and a `daily_protein_target`. Recipes are ranked using normalized feature signals:
-
-* Ingredient match ratio
-* Protein alignment
-* Calorie alignment
-* Goal tag relevance
-* Macro density efficiency
+Each user profile defines:
 
 
-Weights are centrally defined in `app/ai/scoring_config.py`.
+daily_calorie_target
+daily_protein_target
+
+
+Recipes are ranked using normalized feature signals.
+
+| Feature | Description |
+|------|------|
+| Ingredient Match | Overlap between user ingredients and recipe ingredients |
+| Protein Alignment | Distance from protein target |
+| Calorie Alignment | Distance from calorie target |
+| Goal Tag Match | Goal-based tag relevance |
+| Macro Density | Nutritional efficiency score |
+
+Weights are centrally defined in:
+
+
+app/ai/scoring_config.py
+
 
 ---
 
-## Database Models
+# 🗄️ Database Models
 
 | Model | Description |
-| --- | --- |
-| **AuthUser** | Authentication identity. |
-| **User** | Nutrition profile (1-to-1 relationship with AuthUser). |
-| **Recipe** | Stores nutrition values and metadata. |
-| **RecommendationLog** | Logs request payloads, recommended IDs, and timestamps. |
+|------|------|
+| **AuthUser** | Authentication identity |
+| **User** | Nutrition profile |
+| **Recipe** | Nutrition values & metadata |
+| **Ingredient** | Ingredient catalog |
+| **RecipeIngredient** | Recipe ↔ Ingredient mapping |
+| **RecommendationLog** | Logs recommendation events |
+| **DailyLog** | Tracks daily activity |
 
 ---
 
-## Running the Backend
+# 🚀 Running the Backend
 
-### 1. Build & Start
+## 1️⃣ Start the System
 
 ```bash
 docker compose up --build
 
-```
+Startup pipeline:
 
-### 2. Stop
-
-```bash
+PostgreSQL container starts
+        ↓
+Healthcheck confirms DB ready
+        ↓
+Backend container starts
+        ↓
+Alembic migrations run
+        ↓
+Seed dataset loads
+        ↓
+FastAPI server starts
+2️⃣ Stop Containers
 docker compose down
-
-```
-
-### 3. Reset Database (Destructive)
-
-```bash
+3️⃣ Reset Database (Destructive)
 docker compose down -v
 docker compose up --build
 
-```
+This removes the database volume and rebuilds everything.
 
----
+📚 API Documentation
 
-## API Documentation
+Swagger UI:
 
-Once running, the interactive Swagger UI is available at:
-**`http://localhost:8000/docs`**
+http://localhost:8000/docs
+📥 Example Recommendation Request
 
-### Recommendation Endpoint
+Endpoint:
 
-`POST /recipes/recommend`
+POST /recipes/recommend
 
-**Query Parameter:** `user_id` (integer, required)
+Query Parameter:
 
-**Request Body:**
-
-```json
+user_id: integer
+Request Body
 {
   "ingredients": ["chicken", "rice"],
   "protein_min": 20,
   "calorie_max": 800,
   "goal": "muscle"
 }
-
-```
-
-**Sample Response:**
-
-```json
+Example Response
 [
   {
     "id": 18,
@@ -167,43 +207,59 @@ Once running, the interactive Swagger UI is available at:
     }
   }
 ]
+🖥 Database GUI
 
-```
+pgAdmin is included for database inspection.
 
----
+Open:
 
-## Environment Variables
+http://localhost:5050
 
-Configured via `.env`:
-`DATABASE_URL=postgresql://user:password@db:5432/meal_optimization`
+Login:
 
----
+Email: admin@meal.com
+Password: admin
 
-## Design Principles
+Database host inside Docker network:
 
-* Deterministic optimization
-* Strict separation of backend and AI logic
-* Stateless AI engine
-* Docker-first development
-* Centralized scoring configuration
-* Expandable architecture for future ML integration
+db
+🌱 Environment Variables
 
----
+Example .env
 
-## Future Enhancements
+DATABASE_URL=postgresql://postgres:postgres@db:5432/meal_optimization
+🧩 Design Principles
 
-* Structured explainability layer
-* Registration auto-profile creation
-* Feedback-based adaptive scoring
-* Multi-meal daily optimization
-* Machine learning ranking model
+Deterministic optimization
 
-**Status:** Personalized recommendation engine is functional and stable.
+Strict separation of backend and AI logic
 
-```
+Stateless AI engine
 
----
+Docker-first development
 
-Since the structure is solid, would you like me to generate a **`.env.example`** file or a **`docker-compose.yml`** template to match this setup?
+Centralized scoring configuration
+
+Expandable architecture for ML integration
+
+🔮 Future Enhancements
+
+Planned improvements:
+
+Structured explainability layer
+
+Automatic profile creation during registration
+
+Feedback-based adaptive scoring
+
+Multi-meal daily optimization
+
+ML-based ranking models
+
+📊 Status
+
+✅ Backend infrastructure stable
+✅ Recommendation engine functional
+✅ Dockerized development environment
 
 ```
