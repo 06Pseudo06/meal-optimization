@@ -12,7 +12,7 @@ class RecommendationRequest(BaseModel):
 
     protein_min: Optional[float] = Field(
         default=None,
-        gt=0,
+        ge=0,
         description="Minimum required protein"
     )
 

@@ -1,6 +1,7 @@
 from sqlalchemy import Column, Integer, String
 from sqlalchemy.orm import relationship
 from app.core.database import Base
+from sqlalchemy.orm import relationship
 
 class AuthUser(Base):
     __tablename__ = "auth_users"
@@ -18,6 +19,12 @@ class AuthUser(Base):
         "User",
         back_populates="auth_user",
         uselist=False,
+        cascade="all, delete"
+    )
+
+    refresh_tokens = relationship(
+        "RefreshToken", 
+        backref="user", 
         cascade="all, delete"
     )
 

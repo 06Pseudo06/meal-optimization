@@ -6,3 +6,4 @@ from .association import RecipeIngredient
 from .daily_log import DailyLog
 from .recommendation_log import RecommendationLog
 from .auth_user import AuthUser
+from .refresh_token import RefreshToken

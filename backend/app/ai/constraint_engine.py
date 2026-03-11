@@ -36,12 +36,23 @@ def apply_constraints(
 
         # 4️ Ingredient Constraint
         if request.ingredients:
-            recipe_ingredients = {
+            recipe_ingredients = [
                 i.lower() for i in recipe.get("ingredients", [])
-            }
-            required = {i.lower() for i in request.ingredients}
+            ]
 
-            if not required.issubset(recipe_ingredients):
+            required = [i.lower() for i in request.ingredients]
+
+            ingredient_match = False
+
+            for req in required:
+                for ing in recipe_ingredients:
+                    if req in ing:
+                        ingredient_match = True
+                        break
+                if ingredient_match:
+                    break
+
+            if not ingredient_match:
                 continue
 
         # 5️ Goal Constraint
