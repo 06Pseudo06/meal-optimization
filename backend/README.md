@@ -35,25 +35,61 @@ This backend powers a **personalized nutrition recommendation system** that rank
 
 ---
 
+---
+
+## 🔐 Authentication System
+
+The backend implements a **JWT-based authentication system** with secure refresh token rotation.
+
+### Components
+
+| Component | Purpose |
+|---|---|
+| **Access Token (JWT)** | Short-lived token used to authorize API requests |
+| **Refresh Token** | Long-lived token used to generate new access tokens |
+| **Refresh Token Rotation** | Old refresh tokens are invalidated when new ones are issued |
+
+### Flow
+
+1. User registers or logs in.
+2. Server issues:
+   - **Access Token**
+   - **Refresh Token**
+3. Access token is sent with protected API requests.
+4. When expired, client calls `/auth/refresh` using the refresh token.
+5. A new access token is issued and the old refresh token is invalidated.
+
+Protected endpoints include:
+
+- `/recipes/recommend`
+- `/logs/*`
+- `/user/me`
+
 ## 📁 Project Structure
 
 ```text
 backend/
 ├── app/
-│   ├── api/             # FastAPI route definitions
-│   ├── core/            # Global config & DB session management
-│   ├── crud/            # SQL Alchemy CRUD operations
-│   ├── models/          # Database schemas (SQLAlchemy)
-│   ├── schemas/         # Data validation (Pydantic)
-│   ├── services/        # Business logic & AI orchestration
-│   ├── ai/              # The "Brain": Ranking & Scoring logic
+│   ├── api/                 # FastAPI route definitions
+│   ├── core/                # Config, security, DB session
+│   ├── crud/                # Database operations
+│   ├── models/              # SQLAlchemy models
+│   ├── schemas/             # Pydantic schemas
+│   ├── services/            # Business logic & orchestration
+│   ├── ai/                  # Recommendation engine
 │   │   ├── engine.py
+│   │   ├── constraint_engine.py
+│   │   ├── feature_engine.py
 │   │   ├── ranking_engine.py
 │   │   └── scoring_config.py
-│   └── seed/            # Data initialization scripts
-├── alembic/             # Database migration history
-├── data/                # Source CSV datasets
-└── docker-compose.yml   # Multi-container orchestration
+│   ├── utils/               # Token hashing & helpers
+│   └── seed/                # Database seeding scripts
+│
+├── alembic/                 # Migration history
+├── data/                    # CSV datasets
+├── Dockerfile
+├── docker-compose.yml
+└── start.sh
 
 ```
 
@@ -71,7 +107,22 @@ The engine calculates a multi-factor score for each recipe based on the followin
 | **Goal Tag Match** | Binary check against user goals (e.g., "Muscle Gain", "Keto") |
 | **Macro Density** | Nutritional efficiency (Protein-to-Calorie ratio) |
 
-Weights are centrally managed in `app/ai/scoring_config.py` for easy tuning without code changes.
+Weights are centrally managed in `app/ai/scoring_config.py` for easy tuning without code changes.   
+
+Each recommendation request is stored for analysis and debugging.
+
+Logged information includes:
+
+- User ID
+- Requested ingredients
+- Returned recipe IDs
+- Timestamp
+
+This allows future features such as:
+
+- User recommendation history
+- Feedback-based learning
+- AI explainability
 
 ---
 
@@ -102,7 +153,8 @@ Once running, access the interactive documentation at:
 
 ## 📥 Example Request
 
-**Endpoint:** `POST /recipes/recommend?user_id=1`
+**Endpoint:** `POST /recipes/recommend 
+               Authorization: Bearer <access_token>`
 
 **Request Body:**
 
@@ -138,9 +190,10 @@ Once running, access the interactive documentation at:
 
 ## 🔮 Future Roadmap
 
-* **Feedback Loop**: Implement an adaptive scoring layer based on user "dislike/like" history.
-* **Explainability**: Enhanced natural language explanations for *why* a meal was recommended.
-* **Multi-Meal Optimization**: Generating full-day meal plans that hit exact daily totals.
-* **ML Integration**: Transition from deterministic weights to a Learning-to-Rank (LTR) model.
-
+- Feedback-based adaptive scoring
+- Multi-meal daily optimization
+- Ingredient substitution engine
+- Recommendation history API
+- User nutrition analytics dashboard
+- Machine learning ranking model
 ---

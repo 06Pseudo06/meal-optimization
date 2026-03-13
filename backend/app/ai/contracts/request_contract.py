@@ -9,7 +9,7 @@ from pydantic import BaseModel, Field
 
 class RequestContract(BaseModel):
     calorie_max: Optional[float] = Field(default=None, gt=0)
-    protein_min: Optional[float] = Field(default=None, gt=0)
+    protein_min: Optional[float] = Field(default=None, ge=0)
     diet_type: Optional[str] = None
     ingredients: Optional[List[str]] = None
     goal: Optional[str] = None

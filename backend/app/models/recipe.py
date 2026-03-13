@@ -1,14 +1,14 @@
-from sqlalchemy import Column, Integer, String, Float
+from sqlalchemy import Column, Integer, String, Float, Index
 from sqlalchemy.orm import relationship
 from app.core.database import Base
-from sqlalchemy import Index
 
-__table_args__ = (
-    Index("idx_recipe_diet", "diet_type"),
-)
 
 class Recipe(Base):
     __tablename__ = "recipes"
+
+    __table_args__ = (
+        Index("idx_recipe_diet", "diet_type"),
+    )
 
     id = Column(Integer, primary_key=True, index=True)
     name = Column(String, nullable=False)
@@ -16,8 +16,9 @@ class Recipe(Base):
     protein = Column(Float, nullable=False)
     carbs = Column(Float, nullable=True)
     fats = Column(Float, nullable=True)
-    diet_type = Column(String, nullable=False)  # veg / non-veg
-    tags = Column(String)  
+
+    diet_type = Column(String, nullable=False)
+    tags = Column(String)
 
     ingredients = relationship(
         "RecipeIngredient",
@@ -25,4 +26,7 @@ class Recipe(Base):
         cascade="all, delete"
     )
 
-    logs = relationship("DailyLog", back_populates="recipe")
+    logs = relationship(
+        "DailyLog",
+        back_populates="recipe"
+    ) 

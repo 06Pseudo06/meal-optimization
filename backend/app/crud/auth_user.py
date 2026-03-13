@@ -38,8 +38,8 @@ def create_auth_user(db: Session, user):
     # CREATE NUTRITION PROFILE
     profile = User(
         auth_user_id=db_user.id,
-        daily_calorie_target=0,
-        daily_protein_target=0,
+        daily_calorie_target=2000,
+        daily_protein_target=100,
     )
 
     db.add(profile)

@@ -1,91 +1,73 @@
 from sqlalchemy.orm import Session
-from typing import List, Dict, Any
+import json
 
-from app.models.recipe import Recipe
-from app.models.association import RecipeIngredient
-from app.models.ingredient import Ingredient
+from app.models.recipe import Recipe 
 from app.models.recommendation_log import RecommendationLog
-from app.models.user import User
+from app.schemas.recommendation import RecommendationRequest
+from app.models.association import RecipeIngredient 
 
 from app.ai.engine import generate_recommendations
 
 
-def recommend_recipes(db: Session, request, user_id: int) -> List[Dict[str, Any]]:
+def recommend_recipes(
+    db: Session,
+    request: RecommendationRequest,
+    user_id: int
+):
 
-    # 0 Fetch user profile
-    user_profile = (
-        db.query(User)
-        .filter(User.id == user_id)
-        .first()
-    )
+    # 1️ Fetch recipes
+    from sqlalchemy.orm import joinedload
 
-    if not user_profile:
-        return []
-    
-    # Serialize 
-    user_dict = {
-    "daily_calorie_target": user_profile.daily_calorie_target,
-    "daily_protein_target": user_profile.daily_protein_target
-    }
-
-    # 1️ Fetch all recipes
-    recipes = db.query(Recipe).all()
-  
-
-    if not recipes:
-        return []
-
-    recipe_ids = [r.id for r in recipes]
-
-    # 2️ Fetch ingredient mappings in one query (keep your optimization)
-    mappings = (
-        db.query(RecipeIngredient.recipe_id, Ingredient.name)
-        .join(Ingredient)
-        .filter(RecipeIngredient.recipe_id.in_(recipe_ids))
+    recipes = (
+        db.query(Recipe)
+        .options(
+            joinedload(Recipe.ingredients)
+            .joinedload(RecipeIngredient.ingredient))
         .all()
     )
 
-    # 3️ Build ingredient map
-    recipe_ingredient_map = {}
-
-    for recipe_id, ingredient_name in mappings:
-        recipe_ingredient_map.setdefault(recipe_id, []).append(ingredient_name)
-
-    # 4️ Serialize recipes for AI
+    # 2️ Convert DB objects → AI dictionaries
     recipe_dicts = []
 
-    for recipe in recipes:
+    for r in recipes:
 
-        recipe_dict = {
-            "id": recipe.id,
-            "name": recipe.name,
-            "calories": recipe.calories,
-            "protein": recipe.protein,
-            "carbs": recipe.carbs,
-            "fats": recipe.fats,
-            "diet_type": recipe.diet_type,
-            "ingredients": recipe_ingredient_map.get(recipe.id, []),
-            "tags": recipe.tags,
-        }
+        ingredient_names = [
+            ri.ingredient.name
+            for ri in r.ingredients
+        ]
 
-        recipe_dicts.append(recipe_dict)
+        recipe_dicts.append({
+            "id": r.id,
+            "name": r.name,
+            "calories": r.calories,
+            "protein": r.protein,
+            "diet_type": r.diet_type,
+            "tags": r.tags,
+            "ingredients": ingredient_names
+        })
 
-    # 5️ Call AI layer
+
+    print(recipe_dicts[:3])
+    
+    # 3️ Run AI engine
     results = generate_recommendations(
-        user=user_dict,  
+        user={"id": user_id},
         recipes=recipe_dicts,
         request=request.model_dump()
     )
 
-    # 6️ Log recommendations
-    recommended_ids = [r["id"] for r in results]
+    # 4️ Extract IDs
+    recipe_ids = [r["id"] for r in results]
 
-    log_entry = RecommendationLog(
-        request_payload=request.model_dump(),
-        recommended_recipe_ids=recommended_ids
+    # 5️ Save recommendation log
+    log = RecommendationLog(
+        user_id=user_id,
+        ingredients=json.dumps(request.ingredients),
+        recommended_recipe_ids=json.dumps(recipe_ids)
     )
 
-    db.add(log_entry)
+    db.add(log)
     db.commit()
 
-    return results
+    # 6️ Return results
+    return results 
