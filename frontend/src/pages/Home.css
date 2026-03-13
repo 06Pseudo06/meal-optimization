@@ -1,30 +1,39 @@
 @import url('https://fonts.googleapis.com/css2?family=Climate+Crisis:YEAR@1979&family=Funnel+Sans:ital,wght@0,300..800;1,300..800&family=Geo:ital@0;1&family=Luckiest+Guy&family=Nosifer&family=Orbitron:wght@400..900&display=swap');
-html,body{
+
+html,
+body {
   height: 100%;
   margin: 0;
- 
 }
+
+/* NAVBAR CONTAINER */
+
 .login-container {
-    display: flex;
-    flex-direction: row;      
-    justify-content: flex-end;
-    align-items: center;
-    gap: 20px;              
-    padding: 10px 20px;
-    margin: 0;
-    list-style: none; 
+  display: flex;
+  flex-direction: row;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 20px;
+  padding: 10px 20px;
+  margin: 0;
+  list-style: none;
 }
+
+/* NAV LINKS */
+
 .login-container a {
   position: relative;
   text-decoration: none;
   color: inherit;
 }
 
+/* underline animation */
+
 .login-container a::after {
   content: "";
   position: absolute;
   left: 0;
-  bottom: -4px;       
+  bottom: -4px;
   width: 0%;
   height: 2px;
   background-color: #191970;
@@ -34,20 +43,39 @@ html,body{
 .login-container a:hover::after {
   width: 100%;
 }
-.sitename{
-    font-family: "Climate Crisis";
-    margin: 10px;
-    padding: 0px;
-    font-size: 50px;
-    position: fixed;
-    letter-spacing: 4px;
+
+/* SITE TITLE */
+
+.sitename {
+  font-family: "Climate Crisis";
+  margin: 10px;
+  padding: 0;
+  font-size: 50px;
+  position: fixed;
+  letter-spacing: 4px;
 }
+
+/* NAV LINK STYLE */
+
 .login-container .navbar a {
-    text-decoration: none;   
-    color: black;            
-    font-weight: 500;
-    font-family: "Orbitron", sans-serif;
+  color: black;
+  font-weight: 500;
+  font-family: "Orbitron", sans-serif;
 }
+
+/* DARK MODE */
+
+body.dark {
+  background-color: #121313;
+  color: #f1f1f1;
+}
+
+body.dark .login-container .navbar a {
+  color: #f1f1f1;
+}
+
+/* TOGGLE SWITCH */
+
 .mode-toggle {
   position: relative;
   width: 60px;
@@ -89,13 +117,12 @@ html,body{
   transition: transform 0.3s ease;
 }
 
-/* Dark mode state */
+/* dark state toggle */
+
 .mode-toggle.dark {
   background: #121313;
 }
-.mode-toggle.dark .login-container {
-  color: #f1f1f1;
-}
+
 .mode-toggle.dark .knob {
   transform: translateX(30px);
 }
@@ -108,10 +135,186 @@ html,body{
   opacity: 1;
 }
 
-body.dark {
-  background-color: #121313;
+/*PRFILE PICTURE*/
+
+.profile-icon {
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  object-fit: cover;
+  cursor: pointer;
+  border: 0.1px solid #191970;
+}
+
+.profile-icon:hover {
+  transform: scale(1.05);
+  transition: 0.2s ease;
+}
+
+/* hide dropdown by default */
+.dropdown {
+  display: none !important;
+}
+
+/* show when hovering profile icon */
+.profile-menu:hover .dropdown {
+  display: flex !important;
+}
+
+/* prevents flicker when moving mouse into dropdown */
+.profile-menu:hover .dropdown,
+.dropdown:hover {
+  opacity: 1;
+  transform: translateY(0);
+  pointer-events: auto;
+}
+
+/* PROFILE DROPDOWN */
+
+.profile-menu {
+  position: relative;
+}
+
+/* dropdown container */
+
+.dropdown {
+  position: absolute;
+  right: 0;
+  top: 40px !important;
+
+  background: #ECEFF1 !important;
+  padding: 15px;
+  border-radius: 12px;
+
+  box-shadow: 0 1px 5px #191970 !important;
+  min-width: 200px;
+
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+
+  z-index: 1000;
+  /* animation properties */
+  opacity: 0;
+  transform: translateY(10px);
+  pointer-events: none;
+
+  transition: opacity 0.25s ease, transform 0.25s ease;
+}
+
+/* prevent underline animation */
+.dropdown a:after {
+  display: none !important;
+}
+
+.dropdown .appearance-row {
+  color: black;
+  font-weight: 500;
+  font-family: "Orbitron", sans-serif;
+}
+
+body.dark .dropdown .appearance-row {
   color: #f1f1f1;
 }
-body.dark .login-container .navbar a {
+
+/* Logout button*/
+.dropdown .logout-btn {
+  display: block;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  text-align: center;
+  margin-top: 5px;
+  padding: 8px;
+  border-radius: 6px;
+
+  background: #191970;
+  color: white !important;
+
+  font-family: "Orbitron";
+  font-size: 14px;
+
+  transition: background 0.2s ease;
+}
+
+.dropdown .logout-btn:hover {
+  background: #000080;
+}
+
+body.dark .dropdown .logout-btn {
   color: #f1f1f1;
+  background: #3838ff !important;
+}
+
+body.dark .dropdown .logout-btn:hover {
+  background: #000080 !important;
+}
+
+body.dark .dropdown {
+  background: #232323 !important;
+  color: #f1f1f1 !important;
+  box-shadow: 0 1px 5px #3838ff !important;
+}
+
+/* dark mode dropdown */
+
+body.dark .dropdown {
+  background: #1b1b1b;
+}
+
+/* login / register buttons */
+
+.auth-btn {
+  display: block;
+  align-items: center;
+  justify-content: center;
+  width: 90%;
+  text-align: center;
+  padding: 8px;
+  border-radius: 6px;
+
+  background: #191970;
+  color: white !important;
+
+  font-family: "Orbitron";
+  font-size: 14px;
+
+  transition: background 0.2s ease;
+}
+
+body.dark .auth-btn {
+  background: #3838ff;
+  color: white !important;
+}
+
+.auth-btn:hover {
+  background: #000080;
+}
+
+body.dark .auth-btn:hover {
+  background: #191970;
+}
+
+
+.register-btn {
+  background: #444;
+}
+
+body.dark .register-btn {
+  background: #333;
+  color: #ddd;
+}
+
+.register-btn:hover {
+  background: #333 !important;
+}
+
+body.dark .register-btn:hover {
+  background: #6d6d6d !important;
+}
+
+/* prevent underline animation */
+
+.auth-btn::after {
+  display: none !important;
 }

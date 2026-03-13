@@ -3,16 +3,20 @@ import "./Login.css";
 import loginImg from "../assets/image.jpg";
 
 export default function Login() {
-  const [dark, setDark] = useState(false);
+  const [dark, setDark] = useState(() => {
+  return localStorage.getItem("theme") === "dark";  
+  })
   const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z0-9]).{8,}$/;
   const [error, setError] = useState("");const [email, setEmail] = useState(() => localStorage.getItem("rememberedEmail") || "");
-const [remember, setRemember] = useState(() => !!localStorage.getItem("rememberedEmail"));
+  const [remember, setRemember] = useState(() => !!localStorage.getItem("rememberedEmail"));
 
 useEffect(() => {
   if (dark) {
     document.body.classList.add("dark");
+    localStorage.setItem("theme", "dark");
   } else {
     document.body.classList.remove("dark");
+    localStorage.setItem("theme", "light");
   }
 }, [dark]);
 
@@ -22,7 +26,7 @@ useEffect(() => {
   const handleSubmit = async (e) => {
   e.preventDefault();
 
-  // 1. Frontend validation (format only)
+  // frontend password format validation
   if (!passwordRegex.test(password)) {
     setError(
       "Password must be at least 8 characters and include uppercase, lowercase, number, and symbol."
@@ -33,37 +37,46 @@ useEffect(() => {
   setError("");
 
   try {
-    // 2. Send to backend for real authentication
     const res = await fetch("http://localhost:8000/user/login", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ email, password }),
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        email,
+        password
+      })
     });
 
     const data = await res.json();
 
-    // 3. Backend says no -> show backend message
+    // backend rejected login
     if (!res.ok) {
       setError(data.detail || data.message || "Login failed");
       return;
     }
 
-    // 4. Success
+    // store authentication token
+    localStorage.setItem("accessToken", data.access_token);
+
+    // store user info
     localStorage.setItem("user", JSON.stringify(data.user));
 
+    // remember email logic
     if (remember) {
       localStorage.setItem("rememberedEmail", email);
     } else {
       localStorage.removeItem("rememberedEmail");
     }
 
+    // redirect after login
     window.location.href = "/";
+
   } catch (err) {
+    console.error(err);
     setError("Server error. Try again later.");
-    console.log(err);
   }
 };
-
 
   return (
     <>

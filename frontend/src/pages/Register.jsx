@@ -3,7 +3,9 @@ import "./Register.css";
 import loginImg from "../assets/image.jpg";
 
 export default function Register() {
-  const [dark, setDark] = useState(false);
+  const [dark, setDark] = useState(() => {
+  return localStorage.getItem("theme") === "dark";  
+  });
   const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z0-9]).{8,}$/;
   const [error, setError] = useState("");
   const [email, setEmail] = useState("");
@@ -19,8 +21,10 @@ export default function Register() {
   useEffect(() => {
     if (dark) {
       document.body.classList.add("dark");
+      localStorage.setItem("theme", "dark");
     } else {
       document.body.classList.remove("dark");
+      localStorage.setItem("theme", "light");
     }
   }, [dark]);
 

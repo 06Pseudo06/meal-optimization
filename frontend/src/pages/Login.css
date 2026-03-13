@@ -63,7 +63,6 @@ html,body{
   transition: background 0.3s ease;
   overflow: hidden;
 }
-
 .mode-toggle .icon {
   font-size: 14px;
   z-index: 1;
@@ -313,4 +312,54 @@ body.dark .links a {
 }
 body.dark .newUser a {
   color: #3838ff;
+}
+.profile-menu{
+  position: relative;
+}
+
+.profile-icon{
+  cursor: pointer;
+  font-size: 20px;
+}
+
+.dropdown{
+  position: absolute;
+  right: 0;
+  top: 35px;
+  background: white;
+  border-radius: 8px;
+  width: 180px;
+  box-shadow: 0 8px 20px rgba(0,0,0,0.15);
+  padding: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.dropdown a{
+  text-decoration: none;
+  color: black;
+  font-family: "Orbitron";
+}
+
+.appearance-row{
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.logout-btn{
+  border: none;
+  background: none;
+  cursor: pointer;
+  text-align: left;
+  font-family: "Orbitron";
+}
+
+body.dark .dropdown{
+  background:#121313;
+}
+
+body.dark .dropdown a{
+  color:#f1f1f1;
 }
