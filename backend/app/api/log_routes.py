@@ -5,6 +5,7 @@ from app.core.database import get_db
 from app.schemas.daily_log import DailyLogCreate, DailyLogResponse
 from app.crud.log import add_log, calculate_today_macros
 from app.models.user import User
+from app.core.security import get_current_user
 
 from app.auth.dependencies import get_current_user
 from app.models.auth_user import AuthUser
