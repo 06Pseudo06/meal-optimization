@@ -72,7 +72,7 @@ def login_user(user: LoginUser, db: Session = Depends(get_db)):
     if not db_user:
         raise HTTPException(status_code=404, detail="User not found")
 
-    if not verify_password(user.password, db_user.hashed_password):
+    if not verify_password(user.password, db_user.password_hash):
         raise HTTPException(status_code=401, detail="Password incorrect")
 
     # create access token
@@ -87,19 +87,8 @@ def login_user(user: LoginUser, db: Session = Depends(get_db)):
     return {
         "access_token": access_token,
         "refresh_token": refresh_token,
-    }
-
-    return {
-        "access_token": access_token,
-        "token_type": "bearer",
-        "user": {
-            "id": db_user.id,
-            "email": db_user.email,
-            "first_name": db_user.first_name,
-            "last_name": db_user.last_name
-        }
-    }
-
+    } 
+  
 @router.get("/me", response_model=UserResponse)
 def get_my_profile(
     db: Session = Depends(get_db),
