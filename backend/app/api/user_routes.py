@@ -97,7 +97,29 @@ def get_my_profile(
 
     user = db.query(User).filter(User.auth_user_id == current_user.id).first()
 
+    from app.core.exceptions import ProfileNotFoundException
     if not user:
-        raise HTTPException(status_code=404, detail="User profile not found")
+        raise ProfileNotFoundException()
+
+    return user
+
+from app.schemas.user import UserPreferencesUpdate
+
+@router.patch("/me/preferences", response_model=UserResponse)
+def update_my_preferences(
+    prefs: UserPreferencesUpdate,
+    db: Session = Depends(get_db),
+    current_user: AuthUser = Depends(get_current_user)
+):
+    user = db.query(User).filter(User.auth_user_id == current_user.id).first()
+    
+    from app.core.exceptions import ProfileNotFoundException
+    if not user:
+        raise ProfileNotFoundException()
+    
+    if prefs.allergies is not None:
+        user.allergies = prefs.allergies
+        db.commit()
+        db.refresh(user)
 
     return user

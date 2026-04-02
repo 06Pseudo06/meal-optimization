@@ -23,7 +23,41 @@ def recommend(
     
     user = db.query(User).filter(User.auth_user_id == current_user.id).first()
 
+    from app.core.exceptions import ProfileNotFoundException
+
     if not user:
-        raise HTTPException(status_code=404, detail="User profile not found")
+        raise ProfileNotFoundException()
 
     return recommend_recipes(db, request, user.id)
+
+import json
+from app.models.recommendation_log import RecommendationLog
+from app.models.recipe import Recipe
+
+@router.get("/history")
+def get_recommendation_history(
+    db: Session = Depends(get_db),
+    current_user: AuthUser = Depends(get_current_user)
+):
+    user = db.query(User).filter(User.auth_user_id == current_user.id).first()
+    from app.core.exceptions import ProfileNotFoundException
+    if not user:
+        raise ProfileNotFoundException()
+    
+    logs = db.query(RecommendationLog).filter(RecommendationLog.user_id == user.id).order_by(RecommendationLog.created_at.desc()).all()
+    
+    history = []
+    for log in logs:
+        try:
+            recipe_ids = json.loads(log.recommended_recipe_ids)
+            recipes = db.query(Recipe).filter(Recipe.id.in_(recipe_ids)).all()
+            history.append({
+                "id": log.id,
+                "requested_ingredients": json.loads(log.ingredients) if log.ingredients else [],
+                "created_at": log.created_at,
+                "recommendations": recipes
+            })
+        except:
+            continue
+            
+    return history
