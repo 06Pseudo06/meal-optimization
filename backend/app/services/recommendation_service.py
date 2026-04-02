@@ -41,6 +41,8 @@ def recommend_recipes(
             "name": r.name,
             "calories": r.calories,
             "protein": r.protein,
+            "carbs": r.carbs,
+            "fats": r.fats,
             "diet_type": r.diet_type,
             "tags": r.tags,
             "ingredients": ingredient_names
