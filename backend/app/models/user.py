@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, ForeignKey, Float
+from sqlalchemy import Column, Integer, ForeignKey, Float, String
 from sqlalchemy.orm import relationship
 from app.core.database import Base
 
@@ -18,6 +18,7 @@ class User(Base):
 
     daily_calorie_target = Column(Float, nullable=False)
     daily_protein_target = Column(Float, nullable=False)
+    allergies = Column(String, nullable=True)
 
 
     auth_user = relationship("AuthUser", back_populates="profile")

@@ -13,6 +13,14 @@ from app.api import system
 
 app = FastAPI(title="Meal Optimization API")
 
+from fastapi import Request
+from fastapi.responses import JSONResponse
+from app.core.exceptions import ProfileNotFoundException
+
+@app.exception_handler(ProfileNotFoundException)
+async def profile_not_found_handler(request: Request, exc: ProfileNotFoundException):
+    return JSONResponse(status_code=404, content={"detail": exc.message})
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
