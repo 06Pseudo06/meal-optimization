@@ -1,117 +1,441 @@
-@import url('https://fonts.googleapis.com/css2?family=Climate+Crisis:YEAR@1979&family=Funnel+Sans:ital,wght@0,300..800;1,300..800&family=Geo:ital@0;1&family=Luckiest+Guy&family=Nosifer&family=Orbitron:wght@400..900&display=swap');
-html,body{
-  height: 100%;
-  margin: 0;
- 
-}
-.login-container {
-    display: flex;
-    flex-direction: row;      
-    justify-content: flex-end;
-    align-items: center;
-    gap: 20px;              
-    padding: 10px 20px;
-    margin: 0;
-    list-style: none; 
-}
-.login-container a {
-  position: relative;
-  text-decoration: none;
-  color: inherit;
+/* ============================================================
+   DASHBOARD PAGE — Nutrition analytics and tracking
+   ============================================================ */
+
+.dashboard {
+  animation: fadeIn 0.4s ease;
 }
 
-.login-container a::after {
-  content: "";
-  position: absolute;
-  left: 0;
-  bottom: -4px;       
-  width: 0%;
-  height: 2px;
-  background-color: #191970;
-  transition: width 0.3s ease;
+/* ---- Top Stat Cards ---- */
+.dashboard__stats {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
+  margin-bottom: 20px;
 }
 
-.login-container a:hover::after {
-  width: 100%;
+.dashboard__stat-card {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 18px;
 }
-.sitename{
-    font-family: "Climate Crisis";
-    margin: 10px;
-    padding: 0px;
-    font-size: 50px;
-    position: fixed;
-    letter-spacing: 4px;
-}
-.login-container .navbar a {
-    text-decoration: none;   
-    color: black;            
-    font-weight: 500;
-    font-family: "Orbitron", sans-serif;
-}
-.mode-toggle {
-  position: relative;
-  width: 60px;
-  height: 30px;
-  border-radius: 999px;
-  border: none;
-  cursor: pointer;
-  background: #ddd;
+
+.dashboard__stat-header {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  padding: 4px;
-  transition: background 0.3s ease;
-  overflow: hidden;
+  gap: 8px;
 }
 
-.mode-toggle .icon {
+.dashboard__stat-icon {
+  display: flex;
+  align-items: center;
+}
+
+.dashboard__stat-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-text-muted);
+}
+
+.dashboard__stat-value {
+  font-family: var(--font-body);
+  font-size: 28px;
+  font-weight: 800;
+}
+
+.dashboard__stat-unit {
   font-size: 14px;
-  z-index: 1;
-  transition: opacity 0.3s ease;
+  font-weight: 400;
+  color: var(--color-text-muted);
 }
 
-.mode-toggle .sun {
-  opacity: 1;
+.dashboard__stat-bars {
+  display: flex;
+  gap: 4px;
+  margin-top: auto;
 }
 
-.mode-toggle .moon {
-  opacity: 0;
+.dashboard__stat-bar {
+  height: 4px;
+  flex: 1;
+  border-radius: var(--radius-full);
+  transition: background-color var(--transition-fast);
 }
 
-.mode-toggle .knob {
-  position: absolute;
-  top: 3px;
-  left: 3px;
-  width: 24px;
-  height: 24px;
+/* ---- Middle Row: AI Insight + Log Meal ---- */
+.dashboard__middle-row {
+  display: grid;
+  grid-template-columns: 2fr 1fr;
+  gap: 20px;
+  margin-bottom: 20px;
+}
+
+/* AI Insight Card */
+.dashboard__insight {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.dashboard__insight-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.dashboard__insight-dot {
+  color: var(--color-primary);
+  font-size: 10px;
+  animation: pulse 2s ease infinite;
+}
+
+.dashboard__insight-body {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 20px;
+}
+
+.dashboard__insight-text {
+  flex: 1;
+}
+
+.dashboard__insight-quote {
+  font-size: 18px;
+  font-weight: 700;
+  line-height: 1.4;
+  margin-bottom: 12px;
+}
+
+.dashboard__insight-detail {
+  font-size: 13px;
+  color: var(--color-text-muted);
+  line-height: 1.7;
+}
+
+.dashboard__insight-icon {
+  color: var(--color-surface-3);
+  flex-shrink: 0;
+  opacity: 0.5;
+}
+
+.dashboard__insight-stats {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+}
+
+.dashboard__insight-stat {
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.dashboard__insight-stat strong {
+  font-size: 18px;
+  font-weight: 700;
+}
+
+/* Log Meal Card */
+.dashboard__log-meal {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.dashboard__log-meal h3 {
+  font-size: 18px;
+  font-weight: 700;
+}
+
+.dashboard__log-input {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--color-surface-2);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: 4px 4px 4px 14px;
+}
+
+.dashboard__log-input input {
+  flex: 1;
+  background: transparent;
+  border: none;
+  padding: 8px 0;
+  font-size: 13px;
+}
+
+.dashboard__log-input input:focus {
+  box-shadow: none;
+}
+
+.dashboard__log-mic {
+  width: 34px;
+  height: 34px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-sm);
+  color: var(--color-text-muted);
+  background: transparent;
+  border: none;
+  cursor: pointer;
+}
+
+.dashboard__log-mic:hover {
+  color: var(--color-text);
+}
+
+.dashboard__log-suggestions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.dashboard__log-tag {
+  font-family: var(--font-ui);
+  font-size: 10px;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  padding: 6px 14px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-full);
+  color: var(--color-text-muted);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.dashboard__log-tag:hover {
+  border-color: var(--color-primary);
+  color: var(--color-primary);
+}
+
+.dashboard__log-btn {
+  margin-top: auto;
+  width: 100%;
+}
+
+/* ---- Bottom Row: Recent Intake + Weight ---- */
+.dashboard__bottom-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+}
+
+/* Recent Intake */
+.dashboard__recent {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.dashboard__recent-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.dashboard__recent-header h3 {
+  font-size: 18px;
+  font-weight: 700;
+}
+
+.dashboard__recent-view {
+  cursor: pointer;
+  background: none;
+  border: none;
+  font-family: var(--font-ui);
+  color: var(--color-text-muted);
+  font-size: 10px;
+  letter-spacing: 2px;
+}
+
+.dashboard__recent-view:hover {
+  color: var(--color-primary);
+}
+
+.dashboard__recent-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.dashboard__recent-item {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.dashboard__recent-item:last-child {
+  border-bottom: none;
+}
+
+.dashboard__recent-thumb {
+  width: 42px;
+  height: 42px;
+  border-radius: var(--radius-md);
+  background: var(--color-surface-2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--color-text-muted);
+  flex-shrink: 0;
+}
+
+.dashboard__recent-info {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.dashboard__recent-info strong {
+  font-size: 13px;
+}
+
+.dashboard__recent-info span {
+  font-size: 11px;
+  color: var(--color-text-muted);
+}
+
+.dashboard__recent-right {
+  text-align: right;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 4px;
+}
+
+.dashboard__recent-kcal {
+  font-family: var(--font-body);
+  font-size: 16px;
+  font-weight: 700;
+}
+
+.dashboard__recent-tag {
+  font-family: var(--font-ui);
+  font-size: 9px;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  color: var(--color-text-muted);
+}
+
+.dashboard__recent-dots {
+  display: flex;
+  gap: 4px;
+}
+
+.dashboard__recent-dot {
+  width: 6px;
+  height: 6px;
   border-radius: 50%;
-  background: white;
-  transition: transform 0.3s ease;
 }
 
-/* Dark mode state */
-.mode-toggle.dark {
-  background: #121313;
-}
-.mode-toggle.dark .login-container {
-  color: #f1f1f1;
-}
-.mode-toggle.dark .knob {
-  transform: translateX(30px);
+/* Weight Journey */
+.dashboard__weight {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
 }
 
-.mode-toggle.dark .sun {
-  opacity: 0;
+.dashboard__weight-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
 }
 
-.mode-toggle.dark .moon {
-  opacity: 1;
+.dashboard__weight-header h3 {
+  font-size: 18px;
+  font-weight: 700;
 }
 
-body.dark {
-  background-color: #121313;
-  color: #f1f1f1;
+.dashboard__weight-change {
+  font-size: 11px;
+  color: var(--color-success);
+  font-weight: 600;
 }
-body.dark .login-container .navbar a {
-  color: #f1f1f1;
+
+.dashboard__weight-value {
+  font-family: var(--font-body);
+  font-size: 42px;
+  font-weight: 800;
+  line-height: 1;
+}
+
+.dashboard__weight-label {
+  display: block;
+  font-family: var(--font-ui);
+  font-size: 9px;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: var(--color-text-muted);
+  margin-top: 4px;
+  font-weight: 400;
+}
+
+/* Bar chart */
+.dashboard__weight-chart {
+  display: flex;
+  align-items: flex-end;
+  gap: 8px;
+  height: 80px;
+  margin-top: auto;
+}
+
+.dashboard__weight-col {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  height: 100%;
+  justify-content: flex-end;
+}
+
+.dashboard__weight-bar {
+  width: 100%;
+  border-radius: var(--radius-sm) var(--radius-sm) 0 0;
+  transition: height var(--transition-slow);
+}
+
+.dashboard__weight-day {
+  font-family: var(--font-ui);
+  font-size: 9px;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  color: var(--color-text-dim);
+}
+
+/* ---- Responsive ---- */
+@media (max-width: 1024px) {
+  .dashboard__stats {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .dashboard__middle-row {
+    grid-template-columns: 1fr;
+  }
+
+  .dashboard__bottom-row {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 640px) {
+  .dashboard__stats {
+    grid-template-columns: 1fr;
+  }
+
+  .dashboard__insight-body {
+    flex-direction: column;
+  }
+
+  .dashboard__insight-stats {
+    grid-template-columns: 1fr;
+  }
 }

@@ -1,0 +1,283 @@
+/* ============================================================
+   MEALIMIZER — GLOBAL DESIGN SYSTEM
+   Design tokens, resets, and base styles for the entire app.
+   Colors: #191970 #000080 #3838ff #121313 #1b1b1b #ECEFF1
+   ============================================================ */
+
+@import url('https://fonts.googleapis.com/css2?family=Climate+Crisis:YEAR@1979&family=Funnel+Sans:ital,wght@0,300..800;1,300..800&family=Geo:ital@0;1&family=Luckiest+Guy&family=Nosifer&family=Orbitron:wght@400..900&display=swap');
+
+/* ---------- CSS Custom Properties (Design Tokens) ---------- */
+:root {
+  /* Brand palette */
+  --color-midnight:     #191970;
+  --color-navy:         #000080;
+  --color-electric:     #3838ff;
+  --color-bg-dark:      #121313;
+  --color-surface-dark: #1b1b1b;
+  --color-surface-light:#ECEFF1;
+
+  /* Semantic aliases */
+  --color-primary:      var(--color-electric);
+  --color-primary-hover:#2a2ad4;
+  --color-bg:           var(--color-bg-dark);
+  --color-surface:      var(--color-surface-dark);
+  --color-surface-2:    #1e1e2a;
+  --color-surface-3:    #252535;
+  --color-border:       rgba(56, 56, 255, 0.15);
+  --color-border-hover: rgba(56, 56, 255, 0.35);
+  --color-text:         #ECEFF1;
+  --color-text-muted:   #8a8a9a;
+  --color-text-dim:     #5a5a6a;
+  --color-danger:       #ff4757;
+  --color-danger-bg:    rgba(255, 71, 87, 0.1);
+  --color-success:      #2ed573;
+  --color-warning:      #ffa502;
+
+  /* Typography */
+  --font-logo:    'Luckiest Guy', cursive;
+  --font-heading: 'Nosifer', cursive;
+  --font-ui:      'Geo', sans-serif;
+  --font-body:    'Funnel Sans', sans-serif;
+  --font-tech:    'Orbitron', sans-serif;
+
+  /* Spacing */
+  --sidebar-width: 200px;
+  --navbar-height: 60px;
+
+  /* Transitions */
+  --transition-fast: 0.15s ease;
+  --transition-base: 0.25s ease;
+  --transition-slow: 0.4s ease;
+
+  /* Borders */
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 14px;
+  --radius-xl: 20px;
+  --radius-full: 999px;
+}
+
+/* ---------- Light Mode Overrides ---------- */
+body.light {
+  --color-bg:           #ffffff;
+  --color-surface:      var(--color-surface-light);
+  --color-surface-2:    #e4e7e9;
+  --color-surface-3:    #cfd8dc;
+  --color-border:       rgba(0, 0, 0, 0.15);
+  --color-border-hover: rgba(0, 0, 0, 0.35);
+  --color-text:         #121313;
+  --color-text-muted:   #455a64;
+  --color-text-dim:     #78909c;
+}
+
+/* ---------- Global Reset ---------- */
+*,
+*::before,
+*::after {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+  font-family: var(--font-body);
+  font-size: 15px;
+  line-height: 1.6;
+  background-color: var(--color-bg);
+  color: var(--color-text);
+  min-height: 100vh;
+  transition: background-color var(--transition-base), color var(--transition-base);
+}
+
+/* ---------- Scrollbar ---------- */
+::-webkit-scrollbar {
+  width: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--color-bg);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--color-surface-3);
+  border-radius: var(--radius-full);
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--color-primary);
+}
+
+/* ---------- Selection ---------- */
+::selection {
+  background: var(--color-primary);
+  color: white;
+}
+
+/* ---------- Links ---------- */
+a {
+  color: inherit;
+  text-decoration: none;
+  transition: color var(--transition-fast);
+}
+
+a:hover {
+  color: var(--color-primary);
+}
+
+/* ---------- Lists ---------- */
+ul, ol {
+  list-style: none;
+}
+
+/* ---------- Images ---------- */
+img {
+  max-width: 100%;
+  display: block;
+}
+
+/* ---------- Buttons (base) ---------- */
+button {
+  font-family: var(--font-ui);
+  cursor: pointer;
+  border: none;
+  outline: none;
+  background: transparent;
+  color: inherit;
+  transition: all var(--transition-fast);
+}
+
+/* ---------- Inputs (base) ---------- */
+input, textarea, select {
+  font-family: var(--font-body);
+  font-size: 14px;
+  color: var(--color-text);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: 10px 14px;
+  outline: none;
+  transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
+}
+
+input:focus, textarea:focus, select:focus {
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px rgba(56, 56, 255, 0.15);
+}
+
+input::placeholder, textarea::placeholder {
+  color: var(--color-text-dim);
+}
+
+/* ---------- Utility: Orbitron Heading ---------- */
+.heading-ui {
+  font-family: var(--font-ui);
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  font-weight: 700;
+}
+
+/* ---------- Utility: Label ---------- */
+.label-ui {
+  font-family: var(--font-ui);
+  font-size: 10px;
+  letter-spacing: 3px;
+  text-transform: uppercase;
+  color: var(--color-text-muted);
+}
+
+/* ---------- Utility: Card Surface ---------- */
+.card {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: 20px;
+  transition: border-color var(--transition-fast), transform var(--transition-fast);
+}
+
+.card:hover {
+  border-color: var(--color-border-hover);
+}
+
+/* ---------- Utility: Primary Button ---------- */
+.btn-primary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 12px 24px;
+  background: var(--color-primary);
+  color: white;
+  font-family: var(--font-ui);
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  border-radius: var(--radius-md);
+  border: none;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.btn-primary:hover {
+  background: var(--color-primary-hover);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 20px rgba(56, 56, 255, 0.3);
+}
+
+/* ---------- Utility: Ghost Button ---------- */
+.btn-ghost {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 12px 24px;
+  background: transparent;
+  color: var(--color-text);
+  font-family: var(--font-ui);
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.btn-ghost:hover {
+  border-color: var(--color-primary);
+  color: var(--color-primary);
+  transform: translateY(-1px);
+}
+
+/* ---------- Animation Keyframes ---------- */
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes slideInLeft {
+  from { opacity: 0; transform: translateX(-20px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+
+@keyframes slideInUp {
+  from { opacity: 0; transform: translateY(20px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50%      { opacity: 0.5; }
+}
+
+@keyframes shimmer {
+  0%   { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
