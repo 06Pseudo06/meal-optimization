@@ -1,33 +1,34 @@
 /**
  * Home.jsx — Home page with dual layout
- * 
- * GUEST (no token): Landing page with hero section, features grid, 
+ *
+ * GUEST (no token): Landing page with hero section, features grid,
  * Mealimizer Concierge section, and CTA — matching the landing screenshot.
- * 
+ *
  * LOGGED IN: Personalized dashboard-like view with:
  * - Welcome greeting using user.first_name
+ * - Dynamic weight status (ahead / behind / on-target)
  * - Calorie intake card with progress
  * - Body mass card
  * - Last logged entries list
- * - CTA to scan & log a meal
- * 
+ * - CTA to scan & log a meal (navigates to Dashboard)
+ *
  * Dynamic user data is read from localStorage("user").
  */
 
 import { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import {
   ArrowRight, Play, Activity, Target, ShoppingCart,
-  MessageSquare, Home as HomeIcon, TrendingDown, Utensils,
+  MessageSquare, TrendingDown,
   Flame, Camera, ChevronDown, Trash2, SlidersHorizontal
 } from 'lucide-react';
 import './Home.css';
 
 export default function Home() {
-  /* Check auth state */
+  /* ─── Auth & user ─────────────────────────────────────────────── */
   const token = localStorage.getItem('accessToken');
+  const navigate = useNavigate();
 
-  /* Parse user safely — avoid crash if JSON is invalid */
   const user = (() => {
     try {
       return JSON.parse(localStorage.getItem('user')) || null;
@@ -36,7 +37,136 @@ export default function Home() {
     }
   })();
 
-  /* ============ GUEST LANDING PAGE ============ */
+  /* ─── ALL hooks must live here — before any conditional return ── */
+  const [nutritionData, setNutritionData] = useState({
+    yesterdayCal: 'N/A',
+    targetCal: '2000',
+    currentCal: '0',
+    fuelingPercent: 0,
+    weight: '-',
+    weightChange: 'N/A',
+    weightGoal: '-',
+  });
+
+  const [recentEntries, setRecentEntries] = useState([
+    { name: 'Logging System Pending', time: '--:--', kcal: 0, tag: 'N/A', tagColor: '#3838ff' },
+  ]);
+
+  /* ─── Weight status state (from /user/me) ──────────────────── */
+  const [weightStatus, setWeightStatus] = useState({
+    currentWeight: null,
+    weightGoal: null,
+    loaded: false,
+  });
+
+  useEffect(() => {
+    // Only fetch when the user is logged in
+    if (!token) return;
+
+    fetch('http://localhost:8000/logs/today', {
+      headers: { Authorization: `Bearer ${token}` },
+    })
+      .then((res) => res.json())
+      .then((data) => {
+        if (!data.detail) {
+          const percent =
+            data.calorie_target > 0
+              ? Math.round((data.calories_consumed / data.calorie_target) * 100)
+              : 0;
+
+          setNutritionData((prev) => ({
+            ...prev,
+            yesterdayCal: 'N/A',
+            targetCal: data.calorie_target,
+            currentCal: data.calories_consumed,
+            fuelingPercent: percent > 100 ? 100 : percent,
+          }));
+        }
+      })
+      .catch((err) => console.error('Failed to fetch logs summary', err));
+
+    /* Fetch user profile for weight data */
+    fetch('http://localhost:8000/user/me', {
+      headers: { Authorization: `Bearer ${token}` },
+    })
+      .then((res) => res.json())
+      .then((data) => {
+        if (!data.detail) {
+          setWeightStatus({
+            currentWeight: data.current_weight,
+            weightGoal: data.weight_goal,
+            loaded: true,
+          });
+
+          setNutritionData((prev) => ({
+            ...prev,
+            weight: data.current_weight != null ? data.current_weight : '-',
+            weightGoal: data.weight_goal != null ? `${data.weight_goal} kg` : '-',
+          }));
+        }
+      })
+      .catch((err) => console.error('Failed to fetch user profile', err));
+  }, [token]);
+
+  /* ─── Derived values (safe after hooks) ─────────────────────── */
+  const firstName = user?.first_name || 'User';
+
+  /**
+   * Compute dynamic weight status message.
+   * Compares current_weight vs weight_goal.
+   * - If within 0.2 kg (200g): "You are doing great! …"
+   * - If current < goal: user is X kg ahead (below target — losing weight)
+   * - If current > goal: user is X kg behind
+   * - Fallback when data unavailable.
+   */
+  const getWeightStatusMessage = () => {
+    const { currentWeight, weightGoal, loaded } = weightStatus;
+
+    if (!loaded || currentWeight == null || weightGoal == null) {
+      return {
+        text: 'Set your current weight and goal in ',
+        linkText: 'Profile Settings',
+        linkTo: '/profile',
+        className: 'home__weight-status--neutral',
+      };
+    }
+
+    const diff = currentWeight - weightGoal; // positive = above goal, negative = below goal
+    const absDiff = Math.abs(diff);
+
+    if (absDiff <= 0.2) {
+      return {
+        text: "You're doing great! You are just around your target weight.",
+        linkText: null,
+        linkTo: null,
+        className: 'home__weight-status--great',
+      };
+    }
+
+    if (diff > 0) {
+      // Current weight is above goal — user is behind
+      return {
+        text: `You are currently `,
+        highlight: `${absDiff.toFixed(1)}kg ahead`,
+        suffix: ' your target weight.',
+        className: 'home__weight-status--behind',
+      };
+    }
+
+    // Current weight is below goal — user is ahead
+    return {
+      text: `You are currently `,
+      highlight: `${absDiff.toFixed(1)}kg behind`,
+      suffix: ' of your target weight.',
+      className: 'home__weight-status--ahead',
+    };
+  };
+
+  const weightMsg = getWeightStatusMessage();
+
+  /* ============================================================== */
+  /* GUEST LANDING PAGE                                             */
+  /* ============================================================== */
   if (!token) {
     return (
       <div className="landing">
@@ -151,50 +281,9 @@ export default function Home() {
     );
   }
 
-  /* ============ AUTHENTICATED HOME ============ */
-  /* Dynamic greeting with user's first name */
-  const firstName = user?.first_name || 'User';
-
-  const [nutritionData, setNutritionData] = useState({
-    yesterdayCal: '0',
-    targetCal: '2000',
-    currentCal: '0',
-    fuelingPercent: 0,
-    weight: '0',
-    weightChange: '0 kg this week',
-    weightGoal: '0 kg',
-  });
-
-  const [recentEntries, setRecentEntries] = useState([
-    { name: 'Logging System Pending', time: '--:--', kcal: 0, tag: 'N/A', tagColor: '#3838ff' },
-  ]);
-
-  useEffect(() => {
-    if (token) {
-      fetch('http://localhost:8000/logs/today', {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      })
-        .then(res => res.json())
-        .then(data => {
-          if (!data.detail) {
-            const percent = data.calorie_target > 0 ? Math.round((data.calories_consumed / data.calorie_target) * 100) : 0;
-            setNutritionData({
-              yesterdayCal: 'N/A', // Endpoint doesn't return yesterday
-              targetCal: data.calorie_target,
-              currentCal: data.calories_consumed,
-              fuelingPercent: percent > 100 ? 100 : percent,
-              weight: '-',
-              weightChange: 'N/A',
-              weightGoal: '-'
-            });
-          }
-        })
-        .catch(err => console.error("Failed to fetch logs summary", err));
-    }
-  }, [token]);
-
+  /* ============================================================== */
+  /* AUTHENTICATED HOME                                             */
+  /* ============================================================== */
   return (
     <div className="home">
       {/* Personalized welcome header */}
@@ -202,9 +291,17 @@ export default function Home() {
         <h1 className="home__greeting">
           Welcome, <em>{firstName}</em>
         </h1>
-        <p className="home__subtitle">
-          Your architectural meal plan for today is ready. You are currently{' '}
-          <span className="home__highlight">1.2kg ahead</span> of your weekly projection.
+        <p className={`home__subtitle ${weightMsg.className}`}>
+          {weightMsg.text}
+          {weightMsg.highlight && (
+            <span className="home__highlight">{weightMsg.highlight}</span>
+          )}
+          {weightMsg.suffix && weightMsg.suffix}
+          {weightMsg.linkText && (
+            <Link to={weightMsg.linkTo} className="home__highlight">
+              {weightMsg.linkText}
+            </Link>
+          )}
         </p>
       </section>
 
@@ -226,6 +323,7 @@ export default function Home() {
               <span className="home__cal-unit">kcal</span>
             </div>
           </div>
+
           {/* Circular progress indicator */}
           <div className="home__fueling">
             <svg viewBox="0 0 120 120" className="home__fueling-ring">
@@ -246,6 +344,7 @@ export default function Home() {
               </text>
             </svg>
           </div>
+
           {/* Progress bar */}
           <div className="home__progress-section">
             <span className="home__progress-label heading-ui" style={{ fontSize: '11px' }}>Today's Progress</span>
@@ -314,13 +413,16 @@ export default function Home() {
         </div>
       </section>
 
-      {/*Log CTA */}
+      {/* Log CTA — navigates to Dashboard */}
       <section className="home__scan-cta">
         <div className="home__scan-text">
           <h2>Ready to Architect your next meal?</h2>
           <p>Our AI can analyze a photo of your fridge or a restaurant menu to calculate the perfect portion size for your goals.</p>
         </div>
-        <button className="btn-primary home__scan-btn">
+        <button
+          className="btn-primary home__scan-btn"
+          onClick={() => navigate('/dashboard')}
+        >
           Log Meal
         </button>
       </section>

@@ -4,7 +4,7 @@ from datetime import datetime, timedelta
 SECRET_KEY = "your-secret-key"
 ALGORITHM = "HS256"
 
-ACCESS_TOKEN_EXPIRE_MINUTES = 15
+ACCESS_TOKEN_EXPIRE_MINUTES = 60 * 24 * 7  # 7 days for development
 
 
 def create_access_token(user_id: int):

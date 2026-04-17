@@ -19,6 +19,8 @@ class User(Base):
     daily_calorie_target = Column(Float, nullable=False)
     daily_protein_target = Column(Float, nullable=False)
     allergies = Column(String, nullable=True)
+    weight_goal = Column(Float, nullable=True)
+    current_weight = Column(Float, nullable=True)
 
 
     auth_user = relationship("AuthUser", back_populates="profile")

@@ -13,10 +13,11 @@
  * Profile image from localStorage("profileImage").
  */
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
   User, SlidersHorizontal, Palette, Shield, CreditCard,
-  Bell, Sparkles, Moon, Sun, Monitor, AlertTriangle, Pencil
+  Bell, Sparkles, Moon, Sun, Monitor, AlertTriangle, Pencil, Save
 } from 'lucide-react';
 import default_user from '../assets/default-user.jpg';
 import './Profile.css';
@@ -62,6 +63,163 @@ export default function Profile() {
   /* Glassmorphism and ambient glow toggles */
   const [glassmorphism, setGlassmorphism] = useState(true);
   const [ambientGlow, setAmbientGlow] = useState(true);
+
+  /* Preferences State */
+  const [targetKcal, setTargetKcal] = useState('2000');
+  const [weightGoal, setWeightGoal] = useState('');
+  const [currentWeight, setCurrentWeight] = useState('');
+  const [targetKcalSaving, setTargetKcalSaving] = useState(false);
+  const [weightGoalSaving, setWeightGoalSaving] = useState(false);
+  const [currentWeightSaving, setCurrentWeightSaving] = useState(false);
+  const [saveAllSaving, setSaveAllSaving] = useState(false);
+  const [preferencesMessage, setPreferencesMessage] = useState('');
+  const [preferencesMessageType, setPreferencesMessageType] = useState('success');
+
+  const navigate = useNavigate();
+
+  /* Fetch initial user profile on mount */
+  useEffect(() => {
+    const token = localStorage.getItem('accessToken');
+    if (!token) return;
+    fetch('http://localhost:8000/user/me', {
+      headers: { Authorization: `Bearer ${token}` }
+    })
+      .then(res => res.json())
+      .then(data => {
+        if (data.daily_calorie_target) {
+          setTargetKcal(String(data.daily_calorie_target));
+        }
+        if (data.weight_goal) {
+          setWeightGoal(String(data.weight_goal));
+        }
+        if (data.current_weight) {
+          setCurrentWeight(String(data.current_weight));
+        }
+      })
+      .catch(err => console.error('Failed to fetch profile', err));
+  }, []);
+
+  const handleSaveField = async (field, value, setSaving) => {
+    const token = localStorage.getItem('accessToken');
+    if (!token) {
+      navigate('/login');
+      return;
+    }
+    setSaving(true);
+    setPreferencesMessage('');
+
+    let numVal;
+    if (value === '' || isNaN(Number(value))) {
+       setPreferencesMessage('Please enter a valid number.');
+       setPreferencesMessageType('error');
+       setSaving(false);
+       return;
+    }
+    numVal = Number(value);
+
+    const payload = {};
+    payload[field] = numVal;
+
+    try {
+      const res = await fetch('http://localhost:8000/user/me/preferences', {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify(payload)
+      });
+      if (res.status === 401 || res.status === 403) {
+        localStorage.removeItem('accessToken');
+        setPreferencesMessage('Session expired. Redirecting to login...');
+        setPreferencesMessageType('error');
+        setTimeout(() => navigate('/login'), 1200);
+        setSaving(false);
+        return;
+      }
+      if (res.ok) {
+        let fieldName = 'Preference';
+        if (field === 'daily_calorie_target') fieldName = 'Calorie Target';
+        if (field === 'weight_goal') fieldName = 'Weight Goal';
+        if (field === 'current_weight') fieldName = 'Current Weight';
+        setPreferencesMessage(`${fieldName} saved successfully.`);
+        setPreferencesMessageType('success');
+      } else {
+        const errData = await res.json().catch(() => ({}));
+        setPreferencesMessage(errData.detail || 'Failed to save preference.');
+        setPreferencesMessageType('error');
+      }
+    } catch (e) {
+      console.error(e);
+      setPreferencesMessage('Network error. Is the backend running?');
+      setPreferencesMessageType('error');
+    }
+    setSaving(false);
+  };
+
+  /* Save All preferences in a single PATCH request */
+  const handleSaveAll = async () => {
+    const token = localStorage.getItem('accessToken');
+    if (!token) {
+      navigate('/login');
+      return;
+    }
+    setSaveAllSaving(true);
+    setPreferencesMessage('');
+
+    // Validate all fields
+    const fields = [
+      { key: 'daily_calorie_target', value: targetKcal, label: 'Calorie Target' },
+      { key: 'current_weight', value: currentWeight, label: 'Current Weight' },
+      { key: 'weight_goal', value: weightGoal, label: 'Weight Goal' },
+    ];
+
+    const payload = {};
+    for (const f of fields) {
+      if (f.value !== '' && !isNaN(Number(f.value))) {
+        payload[f.key] = Number(f.value);
+      }
+    }
+
+    if (Object.keys(payload).length === 0) {
+      setPreferencesMessage('No valid values to save.');
+      setPreferencesMessageType('error');
+      setSaveAllSaving(false);
+      return;
+    }
+
+    try {
+      const res = await fetch('http://localhost:8000/user/me/preferences', {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify(payload)
+      });
+      if (res.status === 401 || res.status === 403) {
+        localStorage.removeItem('accessToken');
+        setPreferencesMessage('Session expired. Redirecting to login...');
+        setPreferencesMessageType('error');
+        setTimeout(() => navigate('/login'), 1200);
+        setSaveAllSaving(false);
+        return;
+      }
+      if (res.ok) {
+        setPreferencesMessage('All preferences saved successfully.');
+        setPreferencesMessageType('success');
+      } else {
+        const errData = await res.json().catch(() => ({}));
+        setPreferencesMessage(errData.detail || 'Failed to save preferences.');
+        setPreferencesMessageType('error');
+      }
+    } catch (e) {
+      console.error(e);
+      setPreferencesMessage('Network error. Is the backend running?');
+      setPreferencesMessageType('error');
+    }
+    setSaveAllSaving(false);
+  };
 
   /* Settings tabs configuration */
   const tabs = [
@@ -251,11 +409,80 @@ export default function Profile() {
             </div>
           )}
 
-          {/* ======= OTHER TABS (placeholder) ======= */}
+          {/* ======= PREFERENCES TAB ======= */}
           {activeTab === 'preferences' && (
             <div className="settings__section">
-              <h2>Preferences</h2>
-              <p className="settings__placeholder-text">Nutritional preferences and goal configuration coming soon.</p>
+              <div className="settings__section-header">
+                <h2>Preferences</h2>
+                <button
+                  className="btn-primary settings__save-all-btn"
+                  onClick={handleSaveAll}
+                  disabled={saveAllSaving}
+                >
+                  <Save size={14} />
+                  {saveAllSaving ? 'Saving...' : 'Save All'}
+                </button>
+              </div>
+              
+              {preferencesMessage && (
+                <div className={`settings__pref-message ${preferencesMessageType === 'error' ? 'settings__pref-message--error' : 'settings__pref-message--success'}`}>
+                  {preferencesMessage}
+                </div>
+              )}
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+                <div className="settings__field">
+                  <label className="label-ui">Daily Calorie Target (kcal)</label>
+                  <div style={{ display: 'flex', gap: '8px' }}>
+                    <input
+                      type="text"
+                      value={targetKcal}
+                      onChange={(e) => setTargetKcal(e.target.value)}
+                    />
+                    <button 
+                      className="btn-ghost" 
+                      onClick={() => handleSaveField('daily_calorie_target', targetKcal, setTargetKcalSaving)}
+                      disabled={targetKcalSaving}
+                    >
+                      {targetKcalSaving ? 'Saving...' : 'Save'}
+                    </button>
+                  </div>
+                </div>
+                <div className="settings__field">
+                  <label className="label-ui">Current Weight (kg)</label>
+                  <div style={{ display: 'flex', gap: '8px' }}>
+                    <input
+                      type="text"
+                      value={currentWeight}
+                      onChange={(e) => setCurrentWeight(e.target.value)}
+                    />
+                    <button 
+                      className="btn-ghost" 
+                      onClick={() => handleSaveField('current_weight', currentWeight, setCurrentWeightSaving)}
+                      disabled={currentWeightSaving}
+                    >
+                      {currentWeightSaving ? 'Saving...' : 'Save'}
+                    </button>
+                  </div>
+                </div>
+                <div className="settings__field">
+                  <label className="label-ui">Weight Goal (kg)</label>
+                  <div style={{ display: 'flex', gap: '8px' }}>
+                    <input
+                      type="text"
+                      value={weightGoal}
+                      onChange={(e) => setWeightGoal(e.target.value)}
+                    />
+                    <button 
+                      className="btn-ghost" 
+                      onClick={() => handleSaveField('weight_goal', weightGoal, setWeightGoalSaving)}
+                      disabled={weightGoalSaving}
+                    >
+                      {weightGoalSaving ? 'Saving...' : 'Save'}
+                    </button>
+                  </div>
+                </div>
+              </div>
             </div>
           )}
 

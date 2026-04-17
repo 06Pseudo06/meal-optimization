@@ -91,6 +91,41 @@
   align-items: center;
 }
 
+/* Save All button in Preferences header */
+.settings__save-all-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 20px !important;
+  font-size: 12px !important;
+  letter-spacing: 1px;
+}
+
+.settings__save-all-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* Preferences save message */
+.settings__pref-message {
+  font-size: 12px;
+  padding: 10px 14px;
+  border-radius: var(--radius-md);
+  animation: fadeIn 0.3s ease;
+}
+
+.settings__pref-message--success {
+  color: var(--color-success, #22c55e);
+  background: rgba(34, 197, 94, 0.08);
+  border: 1px solid rgba(34, 197, 94, 0.2);
+}
+
+.settings__pref-message--error {
+  color: var(--color-danger, #ff4757);
+  background: rgba(255, 71, 87, 0.08);
+  border: 1px solid rgba(255, 71, 87, 0.2);
+}
+
 .settings__placeholder-text {
   color: var(--color-text-muted);
   font-size: 14px;

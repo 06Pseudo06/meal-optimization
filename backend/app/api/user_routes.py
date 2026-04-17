@@ -87,7 +87,13 @@ def login_user(user: LoginUser, db: Session = Depends(get_db)):
     return {
         "access_token": access_token,
         "refresh_token": refresh_token,
-    } 
+        "user": {
+            "id": db_user.id,
+            "email": db_user.email,
+            "first_name": db_user.first_name,
+            "last_name": db_user.last_name
+        }
+    }
   
 @router.get("/me", response_model=UserResponse)
 def get_my_profile(
@@ -119,7 +125,14 @@ def update_my_preferences(
     
     if prefs.allergies is not None:
         user.allergies = prefs.allergies
-        db.commit()
-        db.refresh(user)
+    if prefs.daily_calorie_target is not None:
+        user.daily_calorie_target = prefs.daily_calorie_target
+    if prefs.weight_goal is not None:
+        user.weight_goal = prefs.weight_goal
+    if prefs.current_weight is not None:
+        user.current_weight = prefs.current_weight
+        
+    db.commit()
+    db.refresh(user)
 
     return user

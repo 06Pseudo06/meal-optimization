@@ -124,6 +124,158 @@
   border: 1.5px solid var(--color-bg);
 }
 
+/* --- Notification Dropdown --- */
+.navbar__notif-wrapper {
+  position: relative;
+}
+
+.navbar__notif-dropdown {
+  position: absolute;
+  right: 0;
+  top: calc(100% + 10px);
+  width: 340px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.5);
+  animation: fadeIn 0.2s ease;
+  z-index: 200;
+  overflow: hidden;
+}
+
+.navbar__notif-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 18px 12px;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.navbar__notif-header h4 {
+  font-family: var(--font-ui);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: var(--color-text);
+}
+
+.navbar__notif-close {
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-sm);
+  color: var(--color-text-muted);
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.navbar__notif-close:hover {
+  color: var(--color-text);
+  background: var(--color-surface-2);
+}
+
+.navbar__notif-list {
+  max-height: 320px;
+  overflow-y: auto;
+}
+
+/* Empty state */
+.navbar__notif-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 24px;
+  text-align: center;
+  gap: 8px;
+}
+
+.navbar__notif-empty-icon {
+  color: var(--color-text-dim);
+  opacity: 0.5;
+  margin-bottom: 4px;
+}
+
+.navbar__notif-empty-text {
+  font-family: var(--font-body);
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--color-text-muted);
+}
+
+.navbar__notif-empty-sub {
+  font-size: 12px;
+  color: var(--color-text-dim);
+  line-height: 1.5;
+  max-width: 220px;
+}
+
+/* Notification item */
+.navbar__notif-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 14px 18px;
+  border-bottom: 1px solid var(--color-border);
+  cursor: pointer;
+  transition: background var(--transition-fast);
+}
+
+.navbar__notif-item:last-child {
+  border-bottom: none;
+}
+
+.navbar__notif-item:hover {
+  background: var(--color-surface-2);
+}
+
+.navbar__notif-item--unread {
+  background: rgba(56, 56, 255, 0.04);
+}
+
+.navbar__notif-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--color-primary);
+  margin-top: 6px;
+  flex-shrink: 0;
+}
+
+.navbar__notif-item:not(.navbar__notif-item--unread) .navbar__notif-dot {
+  background: var(--color-surface-3);
+}
+
+.navbar__notif-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.navbar__notif-content strong {
+  font-size: 13px;
+  color: var(--color-text);
+}
+
+.navbar__notif-content p {
+  font-size: 12px;
+  color: var(--color-text-muted);
+  line-height: 1.5;
+  margin: 0;
+}
+
+.navbar__notif-time {
+  font-size: 11px;
+  color: var(--color-text-dim);
+  margin-top: 2px;
+}
+
 /* --- Profile Dropdown Styles --- */
 .profile-dropdown {
   position: relative;
