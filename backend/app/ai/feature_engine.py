@@ -4,15 +4,17 @@ Converts recipe + request + user profile
 into normalized numeric signals (0–1).
 """
 
+from pyexpat import features
 from typing import Dict
 from app.ai.contracts.recipe_contract import RecipeContract
+from app.ai.contracts.user_contract import UserContract
 from app.ai.contracts.request_contract import RequestContract
 
 
 def compute_features(
     recipe: RecipeContract,
     request: RequestContract,
-    user: Dict
+    user: UserContract
 ) -> Dict[str, float]:
 
     features: Dict[str, float] = {}
@@ -35,7 +37,7 @@ def compute_features(
     # --------------------------------------------------
     # 2️⃣ Protein Alignment (Personalized)
     # --------------------------------------------------
-    target_protein = user.get("daily_protein_target")
+    target_protein = user.daily_protein_target
 
     if target_protein and target_protein > 0:
         # Align to user's daily protein goal
@@ -59,7 +61,7 @@ def compute_features(
     # --------------------------------------------------
     # 3️⃣ Calorie Alignment (Personalized)
     # --------------------------------------------------
-    target_calories = user.get("daily_calorie_target")
+    target_calories = user.daily_calorie_target
 
     if target_calories and target_calories > 0:
         calorie_deviation = abs(recipe.calories - target_calories)
@@ -92,5 +94,24 @@ def compute_features(
         features["macro_density"] = min(density / 0.3, 1.0)
     else:
         features["macro_density"] = 0.0
+
+    # --------------------------------------------------
+    # 6️⃣ Carb Ratio
+    # --------------------------------------------------
+    if recipe.carbs is not None and recipe.carbs > 0:
+        carb_ratio = recipe.carbs / 300   # avg daily carbs
+        features["carb_ratio"] = min(carb_ratio, 1.0)
+    else:
+        features["carb_ratio"] = 0.0
+
+
+    # --------------------------------------------------
+    # 7️⃣ Fat Ratio
+    # --------------------------------------------------
+    if recipe.fats is not None and recipe.fats > 0:
+        fat_ratio = recipe.fats / 70   # avg daily fats
+        features["fat_ratio"] = min(fat_ratio, 1.0)
+    else:
+        features["fat_ratio"] = 0.0
 
     return features

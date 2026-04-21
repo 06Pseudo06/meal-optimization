@@ -21,4 +21,8 @@ class RecommendationOutput(BaseModel):
     calories: float
     protein: float
     score: float
+
+    nutrition_analysis: dict
+    score_breakdown: dict
+    summary: str
     explanation: FeatureBreakdown
