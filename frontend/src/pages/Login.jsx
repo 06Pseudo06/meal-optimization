@@ -16,7 +16,7 @@ import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Eye, EyeOff } from 'lucide-react';
 import './Login.css';
-import bgImage from '../assets/image.jpg';
+import AnimatedCharacters from '../components/AnimatedCharacters';
 
 export default function Login() {
   /* Theme state — persisted to localStorage */
@@ -119,7 +119,7 @@ export default function Login() {
       <div className="auth-split-card">
         {/* Left side: Graphic */}
         <div className="auth-card-left">
-          <img src={bgImage} alt="Seven Deadly Sins" className="auth-card-graphic" />
+          <AnimatedCharacters isPasswordVisible={show} />
         </div>
 
         {/* Right side: Form */}

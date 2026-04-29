@@ -28,10 +28,20 @@ export default function ProfileDropdown() {
   })();
 
   /* Get profile image from localStorage, fall back to default */
-  const profileImage = (() => {
+  const [profileImage, setProfileImage] = useState(() => {
     const saved = localStorage.getItem('profileImage');
     return saved && saved !== 'null' ? saved : default_user;
-  })();
+  });
+
+  useEffect(() => {
+    const handleProfileUpdate = () => {
+      const saved = localStorage.getItem('profileImage');
+      setProfileImage(saved && saved !== 'null' ? saved : default_user);
+    };
+
+    window.addEventListener('profileImageUpdated', handleProfileUpdate);
+    return () => window.removeEventListener('profileImageUpdated', handleProfileUpdate);
+  }, []);
 
   /**
    * Close dropdown when clicking outside of it.

@@ -679,7 +679,7 @@
 
 .home__scan-btn {
   background: white !important;
-  color: var(--color-bg) !important;
+  color: var(--color-bg-dark) !important;
   flex-shrink: 0;
   padding: 16px 28px;
 }

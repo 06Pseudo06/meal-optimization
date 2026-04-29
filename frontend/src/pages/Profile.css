@@ -106,6 +106,28 @@
   cursor: not-allowed;
 }
 
+/* Save changes button for Profile */
+.settings__profile-save-btn {
+  background: var(--color-surface-3);
+  color: var(--color-text);
+  padding: 6px 16px;
+  font-size: 13px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.settings__profile-save-btn:hover:not(:disabled) {
+  background: var(--color-primary);
+  color: white;
+}
+
+.settings__profile-save-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
 /* Preferences save message */
 .settings__pref-message {
   font-size: 12px;

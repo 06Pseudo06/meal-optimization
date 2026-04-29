@@ -51,12 +51,13 @@ export default function Chat() {
    * Handle sending a new message.
    * Calls the backend recommendation API with the user's query.
    */
-  const handleSend = async () => {
-    const text = input.trim();
-    if (!text || loading) return;
+  const handleSend = async (text, image) => {
+    const msg = (text || '').trim();
+    if (!msg && !image) return;
+    if (loading) return;
 
-    /* Add user message immediately */
-    setMessages(prev => [...prev, { type: 'user', text }]);
+    /* Add user message immediately (with optional image) */
+    setMessages(prev => [...prev, { type: 'user', text: msg, image: image || null }]);
     setInput('');
     setLoading(true);
 
@@ -69,7 +70,7 @@ export default function Chat() {
           ...(token && { 'Authorization': `Bearer ${token}` })
         },
         body: JSON.stringify({
-          query: text
+          query: msg || 'Analyze this food image'
         }) // Using query mapped to natural language
       });
 

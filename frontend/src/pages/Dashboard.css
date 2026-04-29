@@ -218,6 +218,57 @@
   width: 100%;
 }
 
+.dashboard__log-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none;
+}
+
+/* Mic active (listening) state */
+.dashboard__log-mic--active {
+  color: var(--color-danger);
+  animation: pulse 1s ease infinite;
+}
+
+/* Spinner for loading state */
+.spin-icon {
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}
+
+/* Tag selected/active visual */
+.dashboard__log-tag:active {
+  transform: scale(0.95);
+}
+
+/* Analyze result feedback */
+.dashboard__log-result {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 10px 14px;
+  border-radius: var(--radius-md);
+  font-size: 12px;
+  line-height: 1.5;
+  animation: fadeIn 0.3s ease;
+}
+
+.dashboard__log-result--success {
+  background: rgba(46, 213, 115, 0.1);
+  border: 1px solid rgba(46, 213, 115, 0.25);
+  color: var(--color-success);
+}
+
+.dashboard__log-result--error {
+  background: var(--color-danger-bg);
+  border: 1px solid rgba(255, 71, 87, 0.25);
+  color: var(--color-danger);
+}
+
 /* ---- Bottom Row: Recent Intake + Weight ---- */
 .dashboard__bottom-row {
   display: grid;
@@ -411,6 +462,72 @@
   color: var(--color-text-dim);
 }
 
+/* ---- View All Meals Modal ---- */
+.dashboard__modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(4px);
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: fadeIn 0.2s ease;
+}
+
+.dashboard__modal {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  width: 90%;
+  max-width: 520px;
+  max-height: 80vh;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+  animation: slideInUp 0.3s ease;
+}
+
+.dashboard__modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 20px 24px 16px;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.dashboard__modal-header h3 {
+  font-size: 18px;
+  font-weight: 700;
+}
+
+.dashboard__modal-close {
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-sm);
+  color: var(--color-text-muted);
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.dashboard__modal-close:hover {
+  color: var(--color-text);
+  background: var(--color-surface-2);
+}
+
+.dashboard__modal-list {
+  overflow-y: auto;
+  padding: 12px 24px 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
 /* ---- Responsive ---- */
 @media (max-width: 1024px) {
   .dashboard__stats {
@@ -437,5 +554,10 @@
 
   .dashboard__insight-stats {
     grid-template-columns: 1fr;
+  }
+
+  .dashboard__modal {
+    width: 95%;
+    max-height: 90vh;
   }
 }

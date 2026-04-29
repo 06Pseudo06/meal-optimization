@@ -59,6 +59,8 @@
 
 /* ---------- Light Mode Overrides ---------- */
 body.light {
+  --color-primary:      var(--color-midnight);
+  --color-primary-hover:#101058;
   --color-bg:           #ffffff;
   --color-surface:      var(--color-surface-light);
   --color-surface-2:    #e4e7e9;

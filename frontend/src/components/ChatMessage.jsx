@@ -35,15 +35,15 @@ export default function ChatMessage({ type, text, image, imageCaption }) {
 
       {/* Message bubble */}
       <div className="chat-message__bubble">
-        <p className="chat-message__text">{text}</p>
-
-        {/* Optional image (e.g., recipe recommendation) */}
+        {/* Optional image — shown above text */}
         {image && (
           <div className="chat-message__image-wrap">
             <img src={image} alt={imageCaption || 'Chat image'} className="chat-message__image" />
             {imageCaption && <span className="chat-message__caption">{imageCaption}</span>}
           </div>
         )}
+
+        {text && <p className="chat-message__text">{text}</p>}
       </div>
 
       {/* User avatar on user messages */}
