@@ -8,7 +8,7 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  background: #111;
+  background: #ffffff;
   position: relative;
   font-family: var(--font-body);
 }
@@ -23,7 +23,7 @@
 .auth-brand-logo {
   font-family: var(--font-logo);
   font-size: 32px;
-  color: #fff;
+  color: #111;
   text-decoration: none;
   letter-spacing: 2px;
 }
@@ -43,7 +43,7 @@
 /* Left side */
 .auth-card-left {
   flex: 1;
-  background: #000;
+  background: var(--color-veggies-background);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -115,6 +115,7 @@
   width: 100%;
   padding: 12px 16px;
   border: none;
+  border-bottom: 0.25px solid #191970;
   border-radius: 20px;
   background: #fff;
   font-family: var(--font-body);

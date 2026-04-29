@@ -9,36 +9,36 @@
 /* ---------- CSS Custom Properties (Design Tokens) ---------- */
 :root {
   /* Brand palette */
-  --color-midnight:     #191970;
-  --color-navy:         #000080;
-  --color-electric:     #3838ff;
-  --color-bg-dark:      #121313;
+  --color-midnight: #191970;
+  --color-navy: #000080;
+  --color-electric: #3838ff;
+  --color-bg-dark: #121313;
   --color-surface-dark: #1b1b1b;
-  --color-surface-light:#ECEFF1;
+  --color-surface-light: #ECEFF1;
 
   /* Semantic aliases */
-  --color-primary:      var(--color-electric);
-  --color-primary-hover:#2a2ad4;
-  --color-bg:           var(--color-bg-dark);
-  --color-surface:      var(--color-surface-dark);
-  --color-surface-2:    #1e1e2a;
-  --color-surface-3:    #252535;
-  --color-border:       rgba(56, 56, 255, 0.15);
+  --color-primary: var(--color-electric);
+  --color-primary-hover: #2a2ad4;
+  --color-bg: var(--color-bg-dark);
+  --color-surface: var(--color-surface-dark);
+  --color-surface-2: #1e1e2a;
+  --color-surface-3: #252535;
+  --color-border: rgba(56, 56, 255, 0.15);
   --color-border-hover: rgba(56, 56, 255, 0.35);
-  --color-text:         #ECEFF1;
-  --color-text-muted:   #8a8a9a;
-  --color-text-dim:     #5a5a6a;
-  --color-danger:       #ff4757;
-  --color-danger-bg:    rgba(255, 71, 87, 0.1);
-  --color-success:      #2ed573;
-  --color-warning:      #ffa502;
-
+  --color-text: #ECEFF1;
+  --color-text-muted: #8a8a9a;
+  --color-text-dim: #5a5a6a;
+  --color-danger: #ff4757;
+  --color-danger-bg: rgba(255, 71, 87, 0.1);
+  --color-success: #2ed573;
+  --color-warning: #ffa502;
+  --color-veggies-background: rgb(212, 221, 255);
   /* Typography */
-  --font-logo:    'Luckiest Guy', cursive;
+  --font-logo: 'Luckiest Guy', cursive;
   --font-heading: 'Nosifer', cursive;
-  --font-ui:      'Geo', sans-serif;
-  --font-body:    'Funnel Sans', sans-serif;
-  --font-tech:    'Orbitron', sans-serif;
+  --font-ui: 'Geo', sans-serif;
+  --font-body: 'Funnel Sans', sans-serif;
+  --font-tech: 'Orbitron', sans-serif;
 
   /* Spacing */
   --sidebar-width: 200px;
@@ -59,17 +59,17 @@
 
 /* ---------- Light Mode Overrides ---------- */
 body.light {
-  --color-primary:      var(--color-midnight);
-  --color-primary-hover:#101058;
-  --color-bg:           #ffffff;
-  --color-surface:      var(--color-surface-light);
-  --color-surface-2:    #e4e7e9;
-  --color-surface-3:    #cfd8dc;
-  --color-border:       rgba(0, 0, 0, 0.15);
+  --color-primary: var(--color-midnight);
+  --color-primary-hover: #101058;
+  --color-bg: #ffffff;
+  --color-surface: var(--color-surface-light);
+  --color-surface-2: #e4e7e9;
+  --color-surface-3: #cfd8dc;
+  --color-border: rgba(0, 0, 0, 0.15);
   --color-border-hover: rgba(0, 0, 0, 0.35);
-  --color-text:         #121313;
-  --color-text-muted:   #455a64;
-  --color-text-dim:     #78909c;
+  --color-text: #121313;
+  --color-text-muted: #455a64;
+  --color-text-dim: #78909c;
 }
 
 /* ---------- Global Reset ---------- */
@@ -133,7 +133,8 @@ a:hover {
 }
 
 /* ---------- Lists ---------- */
-ul, ol {
+ul,
+ol {
   list-style: none;
 }
 
@@ -155,7 +156,9 @@ button {
 }
 
 /* ---------- Inputs (base) ---------- */
-input, textarea, select {
+input,
+textarea,
+select {
   font-family: var(--font-body);
   font-size: 14px;
   color: var(--color-text);
@@ -167,12 +170,15 @@ input, textarea, select {
   transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
 }
 
-input:focus, textarea:focus, select:focus {
+input:focus,
+textarea:focus,
+select:focus {
   border-color: var(--color-primary);
   box-shadow: 0 0 0 3px rgba(56, 56, 255, 0.15);
 }
 
-input::placeholder, textarea::placeholder {
+input::placeholder,
+textarea::placeholder {
   color: var(--color-text-dim);
 }
 
@@ -260,26 +266,59 @@ input::placeholder, textarea::placeholder {
 
 /* ---------- Animation Keyframes ---------- */
 @keyframes fadeIn {
-  from { opacity: 0; transform: translateY(10px); }
-  to   { opacity: 1; transform: translateY(0); }
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 @keyframes slideInLeft {
-  from { opacity: 0; transform: translateX(-20px); }
-  to   { opacity: 1; transform: translateX(0); }
+  from {
+    opacity: 0;
+    transform: translateX(-20px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
 }
 
 @keyframes slideInUp {
-  from { opacity: 0; transform: translateY(20px); }
-  to   { opacity: 1; transform: translateY(0); }
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 @keyframes pulse {
-  0%, 100% { opacity: 1; }
-  50%      { opacity: 0.5; }
+
+  0%,
+  100% {
+    opacity: 1;
+  }
+
+  50% {
+    opacity: 0.5;
+  }
 }
 
 @keyframes shimmer {
-  0%   { background-position: -200% 0; }
-  100% { background-position: 200% 0; }
+  0% {
+    background-position: -200% 0;
+  }
+
+  100% {
+    background-position: 200% 0;
+  }
 }

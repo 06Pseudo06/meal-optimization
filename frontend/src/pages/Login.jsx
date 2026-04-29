@@ -19,10 +19,6 @@ import './Login.css';
 import AnimatedCharacters from '../components/AnimatedCharacters';
 
 export default function Login() {
-  /* Theme state — persisted to localStorage */
-  const [dark, setDark] = useState(() => {
-    return localStorage.getItem('theme') !== 'light';
-  });
 
   /* Password validation regex — requires uppercase, lowercase, number, symbol, 8+ chars */
   const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z0-9]).{8,}$/;
@@ -35,16 +31,6 @@ export default function Login() {
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
 
-  /* Apply dark mode class to body */
-  useEffect(() => {
-    if (dark) {
-      document.body.classList.add('dark');
-      localStorage.setItem('theme', 'dark');
-    } else {
-      document.body.classList.remove('dark');
-      localStorage.setItem('theme', 'light');
-    }
-  }, [dark]);
 
   /**
    * Form submission handler
@@ -108,12 +94,6 @@ export default function Login() {
 
   return (
     <div className="auth-page">
-      {/* Brand logo at the top left */}
-      <div className="auth-brand-container">
-        <Link to="/" className="auth-brand-logo">
-          Mealimizer
-        </Link>
-      </div>
 
       {/* Login split card */}
       <div className="auth-split-card">

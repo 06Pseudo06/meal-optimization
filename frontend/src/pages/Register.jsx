@@ -19,10 +19,6 @@ import './Register.css';
 import AnimatedCharacters from '../components/AnimatedCharacters';
 
 export default function Register() {
-  /* Theme state */
-  const [dark, setDark] = useState(() => {
-    return localStorage.getItem('theme') !== 'light';
-  });
 
   /* Password validation regex */
   const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z0-9]).{8,}$/;
@@ -40,16 +36,6 @@ export default function Register() {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [loading, setLoading] = useState(false);
 
-  /* Apply dark mode class to body */
-  useEffect(() => {
-    if (dark) {
-      document.body.classList.add('dark');
-      localStorage.setItem('theme', 'dark');
-    } else {
-      document.body.classList.remove('dark');
-      localStorage.setItem('theme', 'light');
-    }
-  }, [dark]);
 
   /**
    * Form submission handler
@@ -110,12 +96,6 @@ export default function Register() {
 
   return (
     <div className="auth-page">
-      {/* Brand logo at the top left */}
-      <div className="auth-brand-container">
-        <Link to="/" className="auth-brand-logo">
-          Mealimizer
-        </Link>
-      </div>
 
       {/* Registration split card */}
       <div className="auth-split-card">
@@ -161,7 +141,7 @@ export default function Register() {
             <div className="auth-row">
               <div className="auth-field">
                 <input
-                  type="number"
+                  type="text"
                   placeholder="Age"
                   required
                   value={age}
