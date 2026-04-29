@@ -44,11 +44,20 @@ def get_today_summary(
 
     totals = calculate_today_macros(db, user.id)
 
+    carbs_target = user.daily_carbs_target or 0
+    fats_target = user.daily_fats_target or 0
+
     return {
         "calories_consumed": totals["total_calories"],
         "protein_consumed": totals["total_protein"],
+        "carbs_consumed": totals["total_carbs"],
+        "fats_consumed": totals["total_fats"],
         "calorie_target": user.daily_calorie_target,
         "protein_target": user.daily_protein_target,
+        "carbs_target": carbs_target,
+        "fats_target": fats_target,
         "remaining_calories": user.daily_calorie_target - totals["total_calories"],
-        "remaining_protein": user.daily_protein_target - totals["total_protein"]
+        "remaining_protein": user.daily_protein_target - totals["total_protein"],
+        "remaining_carbs": carbs_target - totals["total_carbs"] if carbs_target > 0 else 0,
+        "remaining_fats": fats_target - totals["total_fats"] if fats_target > 0 else 0
     } 

@@ -127,6 +127,12 @@ def update_my_preferences(
         user.allergies = prefs.allergies
     if prefs.daily_calorie_target is not None:
         user.daily_calorie_target = prefs.daily_calorie_target
+    if prefs.daily_protein_target is not None:
+        user.daily_protein_target = prefs.daily_protein_target
+    if prefs.daily_carbs_target is not None:
+        user.daily_carbs_target = prefs.daily_carbs_target
+    if prefs.daily_fats_target is not None:
+        user.daily_fats_target = prefs.daily_fats_target
     if prefs.weight_goal is not None:
         user.weight_goal = prefs.weight_goal
     if prefs.current_weight is not None:
@@ -136,3 +142,64 @@ def update_my_preferences(
     db.refresh(user)
 
     return user
+
+from app.models.daily_log import DailyLog
+from app.models.recommendation_log import RecommendationLog
+from app.crud.auth_user import verify_password
+from pydantic import BaseModel
+
+class DeleteAccountRequest(BaseModel):
+    password: str
+
+@router.post("/me/clear-data")
+def clear_user_data(
+    db: Session = Depends(get_db),
+    current_user: AuthUser = Depends(get_current_user)
+):
+    user = db.query(User).filter(User.auth_user_id == current_user.id).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="Profile not found")
+
+    # Delete Daily Logs
+    db.query(DailyLog).filter(DailyLog.user_id == user.id).delete()
+    
+    # Delete Recommendation Logs
+    db.query(RecommendationLog).filter(RecommendationLog.user_id == current_user.id).delete()
+
+    # Reset Preferences
+    user.daily_calorie_target = 2000
+    user.daily_protein_target = 100
+    user.daily_carbs_target = None
+    user.daily_fats_target = None
+    user.weight_goal = None
+    user.current_weight = None
+    user.allergies = None
+
+    db.commit()
+    return {"message": "Data cleared successfully"}
+
+@router.post("/me/delete-account")
+def delete_account(
+    request: DeleteAccountRequest,
+    db: Session = Depends(get_db),
+    current_user: AuthUser = Depends(get_current_user)
+):
+    if not verify_password(request.password, current_user.password_hash):
+        raise HTTPException(status_code=401, detail="password does not match")
+
+    user = db.query(User).filter(User.auth_user_id == current_user.id).first()
+    
+    if user:
+        db.query(DailyLog).filter(DailyLog.user_id == user.id).delete()
+        db.delete(user)
+
+    db.query(RecommendationLog).filter(RecommendationLog.user_id == current_user.id).delete()
+    
+    # Delete refresh tokens
+    from app.models.refresh_token import RefreshToken
+    db.query(RefreshToken).filter(RefreshToken.user_id == current_user.id).delete()
+
+    db.delete(current_user)
+    db.commit()
+    
+    return {"message": "Account deleted successfully"}

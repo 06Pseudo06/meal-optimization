@@ -4,6 +4,8 @@ from typing import Optional
 class UserBase(BaseModel):
     daily_calorie_target: float = Field(gt=0)
     daily_protein_target: float = Field(gt=0)
+    daily_carbs_target: Optional[float] = None
+    daily_fats_target: Optional[float] = None
     allergies: Optional[str] = None
     weight_goal: Optional[float] = None
     current_weight: Optional[float] = None
@@ -11,6 +13,9 @@ class UserBase(BaseModel):
 class UserPreferencesUpdate(BaseModel):
     allergies: Optional[str] = None
     daily_calorie_target: Optional[float] = None
+    daily_protein_target: Optional[float] = None
+    daily_carbs_target: Optional[float] = None
+    daily_fats_target: Optional[float] = None
     weight_goal: Optional[float] = None
     current_weight: Optional[float] = None
 

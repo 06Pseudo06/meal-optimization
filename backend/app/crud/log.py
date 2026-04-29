@@ -29,7 +29,9 @@ def calculate_today_macros(db: Session, user_id: int):
     result = (
         db.query(
             func.sum(Recipe.calories),
-            func.sum(Recipe.protein)
+            func.sum(Recipe.protein),
+            func.sum(Recipe.carbs),
+            func.sum(Recipe.fats)
         )
         .join(DailyLog, DailyLog.recipe_id == Recipe.id)
         .filter(
@@ -41,8 +43,12 @@ def calculate_today_macros(db: Session, user_id: int):
 
     calories = result[0] or 0
     protein = result[1] or 0
+    carbs = result[2] or 0
+    fats = result[3] or 0
 
     return {
         "total_calories": calories,
-        "total_protein": protein
+        "total_protein": protein,
+        "total_carbs": carbs,
+        "total_fats": fats
     }

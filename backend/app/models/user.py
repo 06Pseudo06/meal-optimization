@@ -18,6 +18,8 @@ class User(Base):
 
     daily_calorie_target = Column(Float, nullable=False)
     daily_protein_target = Column(Float, nullable=False)
+    daily_carbs_target = Column(Float, nullable=True)
+    daily_fats_target = Column(Float, nullable=True)
     allergies = Column(String, nullable=True)
     weight_goal = Column(Float, nullable=True)
     current_weight = Column(Float, nullable=True)
