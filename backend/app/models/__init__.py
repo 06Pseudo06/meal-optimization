@@ -7,3 +7,5 @@ from .daily_log import DailyLog
 from .recommendation_log import RecommendationLog
 from .auth_user import AuthUser
 from .refresh_token import RefreshToken
+from .user_profile import UserProfile
+from .user_history import UserHistory

@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, Float, Index
+from sqlalchemy import Column, Integer, String, Float, Index, JSON, BigInteger
 from sqlalchemy.orm import relationship
 from app.core.database import Base
 
@@ -19,6 +19,8 @@ class Recipe(Base):
 
     diet_type = Column(String, nullable=False)
     tags = Column(String)
+    embedding = Column(JSON, nullable=True)
+    updated_at = Column(BigInteger, default=0)
 
     ingredients = relationship(
         "RecipeIngredient",

@@ -75,26 +75,61 @@ export default function Chat() {
       });
 
       if (!response.ok) {
+        if (response.status === 401) {
+          throw new Error("Invalid token");
+        }
         const error = new Error("Server error");
         error.response = response;
         throw error;
       }
 
-      const data = await response.json();
+      const responseData = await response.json();
       
-      let aiResponseText = '';
-      if (Array.isArray(data) && data.length > 0) {
-        const topRecipe = data[0];
-        
-        // Defensive consumption with nullish coalescing
-        const recipeName = topRecipe?.recipe?.name ?? 'a customized meal';
-        const proteinAlignment = topRecipe?.explanation?.protein_alignment ?? 0;
-        const calorieAlignment = topRecipe?.explanation?.calorie_alignment ?? 0;
-
-        aiResponseText = `I recommend the **${recipeName}**. It scored highly based on your profile! \n\n*Protein alignment: ${Math.round(proteinAlignment * 100)}%*\n*Calorie alignment: ${Math.round(calorieAlignment * 100)}%*`;
-      } else {
-        aiResponseText = "I couldn't find a perfect match for that request right now. Could you tell me more about what you're looking for?";
+      if (!responseData || !responseData.data || responseData.data.length === 0) {
+        throw new Error("No recipes found");
       }
+      
+      const meta = responseData.meta;
+      const data = responseData.data;
+
+      if (meta?.reason === "no_intent") {
+        setMessages(prev => [...prev, {
+          type: 'ai',
+          text: "Tell me what you're looking for — ingredient, goal, or diet — and I'll suggest something relevant."
+        }]);
+        setLoading(false);
+        return;
+      }
+      
+      const topRecipe = data[0];
+      const recipeName = topRecipe?.recipe?.name;
+      
+      if (!recipeName) {
+        throw new Error("No recipes found");
+      }
+      
+      const ingredientAlignment = topRecipe?.explanation?.ingredient_alignment ?? 0;
+      const proteinAlignment = topRecipe?.explanation?.protein_alignment ?? 0;
+      const calorieAlignment = topRecipe?.explanation?.calorie_alignment ?? 0;
+      const fallbackMode = topRecipe?.explanation?.fallback_mode ?? false;
+      
+      let reason = "it aligns with your preferences";
+      
+      if (fallbackMode || meta?.reason === "fallback" || meta?.reason === "low_confidence") {
+        reason = "it's a reasonable match based on available options";
+      } else if (ingredientAlignment > 0 && calorieAlignment > 0.8) {
+        reason = "it matches your ingredient and calorie requirement";
+      } else if (ingredientAlignment > 0) {
+        reason = "it matches your requested ingredient";
+      } else if (proteinAlignment > 0.8) {
+        reason = "it fits your protein requirement";
+      } else if (calorieAlignment > 0.8) {
+        reason = "it meets your calorie requirement";
+      }
+
+      const intros = ["I recommend", "I suggest", "You might like", "How about"];
+      const randomIntro = intros[Math.floor(Math.random() * intros.length)];
+      const aiResponseText = `${randomIntro} **${recipeName}** because ${reason}.`;
 
       setMessages(prev => [...prev, {
         type: 'ai',
@@ -103,10 +138,13 @@ export default function Chat() {
     } catch (error) {
       console.error(error);
       
-      // Strict error classification
       let errorMsg;
       if (error.message === "Failed to fetch") {
         errorMsg = "Backend unreachable";
+      } else if (error.message === "No recipes found") {
+        errorMsg = "I couldn't find any recipes matching your exact request. Could you tell me more about what you're looking for?";
+      } else if (error.message === "Invalid token") {
+        errorMsg = "Your session has expired or token is invalid. Please log in again.";
       } else if (error.response) {
         errorMsg = "Server error";
       } else {

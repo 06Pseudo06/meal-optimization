@@ -61,3 +61,11 @@ class RecommendationResponseItem(BaseModel):
     recipe: RecipeInfo
     score: float = 0.0
     explanation: RecommendationExplanation
+
+class RecommendationResponseMeta(BaseModel):
+    source: str
+    reason: str
+
+class RecommendationResponse(BaseModel):
+    data: List[RecommendationResponseItem]
+    meta: RecommendationResponseMeta
