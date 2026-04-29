@@ -31,7 +31,7 @@ export default function Chat() {
   const [messages, setMessages] = useState([
     {
       type: 'ai',
-      text: `Hello! I'm your **Mealimizer AI**. Tell me what you're craving, what ingredients you have, or what your macros goals are, and I'll find the perfect recipe for you.`
+      text: `Hello! I'm your Mealimizer AI. Tell me what you're craving, what ingredients you have, or what your macros goals are, and I'll find the perfect recipe for you.`
     }
   ]);
 
@@ -75,7 +75,9 @@ export default function Chat() {
       });
 
       if (!response.ok) {
-        throw new Error('API Error');
+        const error = new Error("Server error");
+        error.response = response;
+        throw error;
       }
 
       const data = await response.json();
@@ -83,7 +85,13 @@ export default function Chat() {
       let aiResponseText = '';
       if (Array.isArray(data) && data.length > 0) {
         const topRecipe = data[0];
-        aiResponseText = `I recommend the **${topRecipe.name}**. It scored highly based on your profile! \n\n*Protein alignment: ${Math.round(topRecipe.explanation.protein_alignment * 100)}%*\n*Calorie alignment: ${Math.round(topRecipe.explanation.calorie_alignment * 100)}%*`;
+        
+        // Defensive consumption with nullish coalescing
+        const recipeName = topRecipe?.recipe?.name ?? 'a customized meal';
+        const proteinAlignment = topRecipe?.explanation?.protein_alignment ?? 0;
+        const calorieAlignment = topRecipe?.explanation?.calorie_alignment ?? 0;
+
+        aiResponseText = `I recommend the **${recipeName}**. It scored highly based on your profile! \n\n*Protein alignment: ${Math.round(proteinAlignment * 100)}%*\n*Calorie alignment: ${Math.round(calorieAlignment * 100)}%*`;
       } else {
         aiResponseText = "I couldn't find a perfect match for that request right now. Could you tell me more about what you're looking for?";
       }
@@ -92,11 +100,22 @@ export default function Chat() {
         type: 'ai',
         text: aiResponseText
       }]);
-    } catch (err) {
-      console.error(err);
+    } catch (error) {
+      console.error(error);
+      
+      // Strict error classification
+      let errorMsg;
+      if (error.message === "Failed to fetch") {
+        errorMsg = "Backend unreachable";
+      } else if (error.response) {
+        errorMsg = "Server error";
+      } else {
+        errorMsg = "Unexpected failure";
+      }
+
       setMessages(prev => [...prev, {
         type: 'ai',
-        text: 'Sorry, I am having trouble connecting to my neural core. Please try again later.'
+        text: errorMsg
       }]);
     } finally {
       setLoading(false);

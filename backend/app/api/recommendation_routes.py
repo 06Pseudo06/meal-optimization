@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
 from app.core.database import get_db
-from app.schemas.recommendation import RecommendationRequest
+from app.schemas.recommendation import RecommendationRequest, RecommendationResponseItem
 from app.services.recommendation_service import recommend_recipes
 
 from app.auth.dependencies import get_current_user
@@ -13,12 +13,13 @@ from app.models.user import User
 router = APIRouter(prefix="/recipes", tags=["Recommendations"])
 
 
-@router.post("/recommend")
+@router.post("/recommend", response_model=list[RecommendationResponseItem])
 def recommend(
     request: RecommendationRequest,
     db: Session = Depends(get_db),
     current_user: AuthUser = Depends(get_current_user)
 ):
+    print("REQUEST RECEIVED:", request.model_dump())
 
     
     user = db.query(User).filter(User.auth_user_id == current_user.id).first()
@@ -28,7 +29,8 @@ def recommend(
     if not user:
         raise ProfileNotFoundException()
 
-    return recommend_recipes(db, request, user.id)
+    results = recommend_recipes(db, request, user.id)
+    return [RecommendationResponseItem(**r) for r in results]
 
 import json
 from app.models.recommendation_log import RecommendationLog

@@ -1,3 +1,4 @@
+
 import logging
 
 logging.basicConfig(level=logging.INFO)
@@ -20,6 +21,7 @@ class RecommendationEngine:
             )
             .all()
         )
+        print("DB RESULTS COUNT:", len(recipes))
 
         # STEP 2: Apply Hard Filters
         preferences = input_data.get("preferences", {})
@@ -32,19 +34,22 @@ class RecommendationEngine:
                 if r.diet_type and r.diet_type.lower() == preferences["diet_type"].lower()
             ]
 
-        # Ingredient filter
+        original_recipes = recipes.copy() # Keep a copy to relax if needed
+
+        print("INGREDIENT FILTER APPLIED:", preferences.get("ingredients"))
+
+        # Ingredient filter (HARD PRIORITY)
         if preferences.get("ingredients"):
-            recipes = [
+            ingredient_matches = [
                 r for r in recipes
-                if any(
-                    ing.lower() in [
-                        ri.ingredient.name.lower()
-                        for ri in getattr(r, "ingredients", [])
-                        if getattr(ri, "ingredient", None)
-                    ]
-                    for ing in preferences["ingredients"]
-                )
+                if any(ing.lower() in r.name.lower() for ing in preferences["ingredients"])
             ]
+            
+            # HARD PRIORITY: only restrict if matches exist
+            if ingredient_matches:
+                recipes = ingredient_matches
+            else:
+                recipes = original_recipes # fallback gracefully
 
         # Calorie constraint
         if constraints.get("calorie_max") is not None:
@@ -52,7 +57,9 @@ class RecommendationEngine:
 
         # Protein constraint
         if constraints.get("protein_min") is not None:
-            recipes = [r for r in recipes if r.protein and r.protein >= constraints["protein_min"]]
+            filtered = [r for r in recipes if r.protein and r.protein >= constraints["protein_min"]]
+            if filtered:
+                recipes = filtered
 
         # STEP 3: NLP Signals
         query = (input_data.get("query") or "").lower()
@@ -92,8 +99,8 @@ class RecommendationEngine:
 
             # LOW CALORIE MODE (FIXED)
             if signals["low_calorie"]:
-                calorie_score = max(0, 500 - calories*2)   # dominant factor
-                protein_score = protein * 0.05             # weak tie-breaker
+                calorie_score = max(0, 200 - calories)   # dominant factor
+                protein_score = protein * 0.1             # weak tie-breaker
                 score = calorie_score + protein_score
 
             else:
@@ -114,24 +121,59 @@ class RecommendationEngine:
 
             return round(score, 2)
 
+        def calc_alignment(r):
+            ingredient_align = 0.0
+            if preferences.get("ingredients"):
+                if any(ing.lower() in r.name.lower() for ing in preferences["ingredients"]):
+                    ingredient_align = 1.0
+                    
+            p_align = 0.5
+            if constraints.get("protein_min"):
+                p_align = 1.0 if (r.protein and r.protein >= constraints["protein_min"]) else 0.8
+            elif signals["high_protein"]:
+                p_align = 0.95
+                
+            c_align = 0.5
+            if constraints.get("calorie_max"):
+                c_align = 1.0 if (r.calories and r.calories <= constraints["calorie_max"]) else 0.8
+            elif signals["low_calorie"]:
+                c_align = 0.95
+            
+            score = (ingredient_align * 50) + (p_align * 30) + (c_align * 20)
+            return ingredient_align, p_align, c_align, score
+
         # STEP 6: Sort & Limit
-        recipes = sorted(recipes, key=score_recipe, reverse=True)[:10]
+        scored_recipes = [{"recipe_obj": r, "metrics": calc_alignment(r)} for r in recipes]
+        scored_recipes.sort(key=lambda x: x["metrics"][3], reverse=True)
+        top_scored = scored_recipes[:10]
+
+        print("FINAL CANDIDATES:", [x["recipe_obj"].name for x in top_scored])
+
+        if len(top_scored) == 0:
+            return self._fallback(db)
 
         # STEP 7: Logging
         logging.info(f"[AI] Query: {query}")
-        logging.info(f"[AI] Recipes after filtering: {len(recipes)}")
-        logging.info(f"[AI] Top recipe: {recipes[0].name if recipes else 'None'}")
+        logging.info(f"[AI] Recipes after filtering: {len(top_scored)}")
+        logging.info(f"[AI] Top recipe: {top_scored[0]['recipe_obj'].name if top_scored else 'None'}")
 
         # STEP 8: Output
         return [
             {
-                "id": r.id,
-                "name": r.name,
-                "calories": r.calories,
-                "protein": r.protein,
-                "score": score_recipe(r)
+                "recipe": {
+                    "id": x["recipe_obj"].id,
+                    "name": x["recipe_obj"].name,
+                    "calories": x["recipe_obj"].calories,
+                    "protein": x["recipe_obj"].protein,
+                },
+                "score": x["metrics"][3],
+                "explanation": {
+                    "ingredient_alignment": x["metrics"][0],
+                    "protein_alignment": x["metrics"][1],
+                    "calorie_alignment": x["metrics"][2]
+                }
             }
-            for r in recipes
+            for x in top_scored
         ]
 
     def _fallback(self, db):

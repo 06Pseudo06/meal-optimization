@@ -45,3 +45,19 @@ class RecommendationRequest(BaseModel):
     default=None,
     description="Natural language meal request"
     )
+
+class RecipeInfo(BaseModel):
+    id: int
+    name: str
+    calories: Optional[float] = 0.0
+    protein: Optional[float] = 0.0
+
+class RecommendationExplanation(BaseModel):
+    ingredient_alignment: float = 0.0
+    protein_alignment: float = 0.0
+    calorie_alignment: float = 0.0
+
+class RecommendationResponseItem(BaseModel):
+    recipe: RecipeInfo
+    score: float = 0.0
+    explanation: RecommendationExplanation
