@@ -11,3 +11,4 @@ email-validator
 pandas
 passlib[bcrypt]
 sentence-transformers
+requests

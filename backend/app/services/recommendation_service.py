@@ -22,7 +22,8 @@ def get_user_memory(user_id):
             "protein_min": None,
             "protein_max": None,
             "calorie_min": None,
-            "calorie_max": None
+            "calorie_max": None,
+            "turn_count": 0
         }
     return USER_MEMORY[user_id]
 
@@ -130,6 +131,52 @@ def normalize_recommendation(item):
         }
     }
 
+def merge_intent(memory, new):
+    NON_VEG = ["chicken", "egg", "eggs", "fish", "meat", "beef", "pork"]
+    
+    merged = {
+        "ingredients": memory.get("ingredients", []),
+        "diet_type": memory.get("diet_type"),
+        "protein_min": memory.get("protein_min"),
+        "protein_max": memory.get("protein_max"),
+        "calorie_min": memory.get("calorie_min"),
+        "calorie_max": memory.get("calorie_max"),
+    }
+    
+    # 1. Ingredient overwrite
+    if new.get("ingredients"):
+        merged["ingredients"] = new["ingredients"]
+        
+    # 2. Diet override
+    if new.get("diet_type"):
+        merged["diet_type"] = new["diet_type"]
+        
+    # 3. Conflict resolution
+    if merged["diet_type"] == "veg":
+        if merged.get("ingredients"):
+            merged["ingredients"] = [i for i in merged["ingredients"] if i not in NON_VEG]
+            
+    if merged.get("ingredients"):
+        if any(i in NON_VEG for i in merged["ingredients"]):
+            merged["diet_type"] = "non_veg"
+            
+    # 4. Constraint conflict
+    if new.get("protein_min") is not None:
+        merged["protein_min"] = new["protein_min"]
+        merged["protein_max"] = None
+    elif new.get("protein_max") is not None:
+        merged["protein_max"] = new["protein_max"]
+        merged["protein_min"] = None
+        
+    if new.get("calorie_min") is not None:
+        merged["calorie_min"] = new["calorie_min"]
+        merged["calorie_max"] = None
+    elif new.get("calorie_max") is not None:
+        merged["calorie_max"] = new["calorie_max"]
+        merged["calorie_min"] = None
+        
+    return merged
+
 engine = RecommendationEngine()
 
 def get_recommendations(user_input, db):
@@ -140,75 +187,45 @@ def get_recommendations(user_input, db):
         query = getattr(user_input, "query", "") or ""
         q_lower = query.lower()
 
-        # STEP 5 - RESET HANDLING
-        if any(word in q_lower for word in ["reset", "start over", "anything", "clear"]):
+        # STEP 5 - RESET HANDLING & MEMORY LIMITATION
+        # Auto-reset if context becomes too long (limit drift)
+        if conversation_memory.get("turn_count", 0) > 5 or "reset" in q_lower or "clear" in q_lower:
             USER_MEMORY[user_id] = {
-                "ingredients": None, "diet_type": None,
+                "ingredients": [], "diet_type": None,
                 "protein_min": None, "protein_max": None,
-                "calorie_min": None, "calorie_max": None
+                "calorie_min": None, "calorie_max": None,
+                "turn_count": 0
             }
             conversation_memory = USER_MEMORY[user_id]
-
-        current_intent = {
-            "ingredients": None, "diet_type": None,
-            "protein_min": None, "protein_max": None,
-            "calorie_min": None, "calorie_max": None
-        }
-
-        # --- NLP Extraction logic ---
-        INGREDIENT_SYNONYMS = {
-            "egg": ["egg", "omelette", "scrambled", "eggs"],
-            "chicken": ["chicken", "grilled chicken"],
-            "paneer": ["paneer", "cottage cheese", "panner"],
-            "tofu": ["tofu", "soy"]
-        }
-
-        extracted_ingredients = []
-        for key, synonyms in INGREDIENT_SYNONYMS.items():
-            if any(syn in q_lower for syn in synonyms):
-                extracted_ingredients = [key]
-                break
-
-        if extracted_ingredients:
-            current_intent["ingredients"] = extracted_ingredients
-            conversation_memory["ingredients"] = extracted_ingredients
             
-        print("EXTRACTED INGREDIENT:", extracted_ingredients)
+        conversation_memory["turn_count"] = conversation_memory.get("turn_count", 0) + 1
 
-        if "low protein" in q_lower or "less protein" in q_lower:
-            current_intent["protein_max"] = 15
-        elif "high protein" in q_lower:
-            current_intent["protein_min"] = 30
+        from app.ai.intent_parser import parse_query
+        new_intent = parse_query(query)
+        print("PARSED INTENT (NEW):", new_intent)
         
-        import re
-        match = re.search(r'(\d+)g protein', q_lower)
-        if match:
-            current_intent["protein_min"] = int(match.group(1))
-
-        if "high calorie" in q_lower:
-            current_intent["calorie_min"] = 600
-        elif "low calorie" in q_lower or "weight loss" in q_lower:
-            current_intent["calorie_max"] = 400
-
-        if "veg recipe" in q_lower or "veg" in q_lower:
-            current_intent["diet_type"] = "veg"
-            
-        print("CURRENT INTENT:", current_intent)
-        print("MEMORY:", conversation_memory)
-
-        final_intent = resolve_intent(current_intent, conversation_memory)
-        print("FINAL INTENT:", final_intent)
-
-        # FIX NO-INTENT BUG
-        if not any([
+        # Merge with memory
+        final_intent = merge_intent(conversation_memory, new_intent)
+        
+        # We need intent to be complete to proceed. If LLM says it's incomplete AND
+        # our merged final_intent still doesn't have anything concrete, we ask for more.
+        if new_intent.get("intent_complete") is False and not any([
             final_intent.get("ingredients"),
             final_intent.get("diet_type"),
-            final_intent.get("protein_min")
+            final_intent.get("protein_min"),
+            final_intent.get("calorie_max")
         ]):
-            return fallback_recommendations(db, reason="no_intent")
+            return {
+                "message": "Do you want high protein, low calorie, or a specific ingredient?",
+                "data": [],
+                "meta": {"source": "ai", "reason": "no_intent", "confidence": new_intent.get("_confidence", 0.2)}
+            }
 
         # Update Memory
         USER_MEMORY[user_id] = final_intent
+        
+        # We store current_intent for engine constraints just as new_intent
+        current_intent = new_intent
         
         user_profile = get_user_profile(db, user_id)
         recent_history = db.query(UserHistory).filter(UserHistory.user_id == user_id).order_by(UserHistory.timestamp.desc()).limit(5).all()
@@ -224,6 +241,7 @@ def get_recommendations(user_input, db):
             "preferences": {
                 "diet_type": final_intent["diet_type"],
                 "ingredients": final_intent["ingredients"] if final_intent["ingredients"] else [],
+                "current_query_ingredients": current_intent["ingredients"] if current_intent["ingredients"] else [],
                 "has_ingredient_intent": bool(final_intent["ingredients"])
             },
         
@@ -247,14 +265,17 @@ def get_recommendations(user_input, db):
             raise ValueError("AI output must be a list")
             
         if not results or all(not r.get("recipe") for r in results):
-            print("AI OUTPUT EMPTY, USING FALLBACK")
-            return fallback_recommendations(db, reason="low_confidence")
+            print("AI OUTPUT EMPTY")
+            return {
+                "data": [],
+                "meta": {"source": "ai", "reason": "strict_filter_empty", "confidence": 0.0}
+            }
 
         if results and results[0].get("recipe"):
             update_user_profile(db, user_id, results[0]["recipe"], final_intent)
-            confidence = results[0].get("confidence", 0.8)
+            confidence = new_intent.get("_confidence", 0.8)
         else:
-            confidence = 0.5
+            confidence = new_intent.get("_confidence", 0.5)
 
         return {
             "data": results,
@@ -267,7 +288,8 @@ def get_recommendations(user_input, db):
 
 def fallback_recommendations(db, reason="normal"):
     from app.models.recipe import Recipe
-    recipes = db.query(Recipe).limit(5).all()
+    import random
+    recipes = db.query(Recipe).all()
     
     if not recipes:
         return {
@@ -283,11 +305,15 @@ def fallback_recommendations(db, reason="normal"):
                 "explanation": {
                     "ingredient_alignment": 0.5,
                     "protein_alignment": 0.5,
-                    "calorie_alignment": 0.5
+                    "calorie_alignment": 0.5,
+                    "fallback_mode": True
                 }
             }],
             "meta": {"source": "fallback", "reason": reason, "confidence": 0.5}
         }
+
+    top = sorted(recipes, key=lambda r: r.protein or 0, reverse=True)[:20]
+    random.shuffle(top)
 
     return {
         "data": [
@@ -303,10 +329,11 @@ def fallback_recommendations(db, reason="normal"):
                 "explanation": {
                     "ingredient_alignment": 0.5,
                     "protein_alignment": 0.5,
-                    "calorie_alignment": 0.5
+                    "calorie_alignment": 0.5,
+                    "fallback_mode": True
                 }
             }
-            for r in recipes
+            for r in top[:5]
         ],
         "meta": {"source": "fallback", "reason": reason, "confidence": 0.5}
     }
@@ -328,8 +355,11 @@ def recommend_recipes(
     
     results = get_recommendations(user_input, db)
     
+    if results.get("meta", {}).get("reason") == "no_intent":
+        return results
+
     # Final safeguard before normalization
-    if not results or not results.get("data") or all(r.get("recipe", {}) == {} for r in results.get("data", [])):
+    if not results or (not results.get("data") and results.get("meta", {}).get("reason") not in ["no_intent", "strict_filter_empty"]) or all(r.get("recipe", {}) == {} for r in results.get("data", [])):
         results = fallback_recommendations(db, reason="low_confidence")
     
     # 3️ Normalize all results to guarantee strict structure

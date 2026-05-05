@@ -14,6 +14,14 @@ import json
 from collections import OrderedDict
 import time
 import threading
+import random
+
+INGREDIENT_MAP = {
+    "chicken": ["chicken"],
+    "egg": ["egg", "omelette", "scrambled"],
+    "paneer": ["paneer", "panner", "cottage cheese"],
+    "tofu": ["tofu", "soy"]
+}
 
 """
 RECIPE_EMBEDDING_CACHE Strategy:
@@ -61,6 +69,9 @@ class RecommendationEngine:
         original_recipes = recipes.copy() # Keep a copy to relax if needed
         fallback_mode = False
         
+        print({"event": "sample_recipes", "data": [r.name for r in recipes[:10]]})
+        print({"event": "chicken_matches", "data": [r.name for r in recipes if "chicken" in r.name.lower()]})
+        
         # STEP 1 - diet filter
         diet_type = preferences.get("diet_type")
         if diet_type == "veg":
@@ -68,18 +79,27 @@ class RecommendationEngine:
             if filtered_diet:
                 recipes = filtered_diet
 
-        def matches_ingredient(recipe_name, ingredient):
-            return ingredient in recipe_name.lower()
+        def match_ingredient(recipe, ingredients):
+            name = (recipe.name or "").lower()
+            for ing in ingredients:
+                synonyms = INGREDIENT_MAP.get(ing, [ing])
+                if any(s in name for s in synonyms):
+                    return True
+            return False
 
         print("INGREDIENT FILTER APPLIED:", preferences.get("ingredients"))
         print("AVAILABLE RECIPES:", [r.name for r in recipes])
 
         # STEP 2 - ingredient filter (HARD PRIORITY)
+        filtered = recipes
         if preferences.get("ingredients"):
-            recipes = [
-                r for r in recipes
-                if any(matches_ingredient(r.name, ing) for ing in preferences["ingredients"])
-            ]
+            temp = [r for r in recipes if match_ingredient(r, preferences["ingredients"])]
+            if temp:
+                filtered = temp
+            else:
+                print({"event": "ingredient_no_match", "ingredients": preferences["ingredients"]})
+        recipes = filtered
+        print({"event": "filtered_recipes", "data": [r.name for r in recipes[:10]]})
 
         # Protein constraint
         if constraints.get("protein_min") is not None:
@@ -93,11 +113,6 @@ class RecommendationEngine:
         if constraints.get("calorie_max") is not None:
             recipes = [r for r in recipes if r.calories and r.calories <= constraints["calorie_max"]]
 
-        # STEP 3 - fallback if empty
-        if not recipes:
-            recipes = original_recipes
-            fallback_mode = True
-            
         print("FINAL RECIPES:", [r.name for r in recipes])
 
         # STEP 3: NLP Signals
@@ -128,8 +143,7 @@ class RecommendationEngine:
 
         # STEP 4: Handle Empty
         if not recipes:
-            logging.info("[AI Engine] No recipes matched filters → fallback")
-            return self._fallback(db)
+            fallback_mode = True
 
         # STEP 5: Scoring
         def score_recipe(r):
@@ -181,7 +195,7 @@ class RecommendationEngine:
         # Cache invalidation and batch computation
         pending = []
         for r in recipes:
-            r_updated = getattr(r, "updated_at", 0)
+            r_updated = getattr(r, "updated_at", 0) or 0
             
             if r.id in RECIPE_EMBEDDING_CACHE:
                 cached = RECIPE_EMBEDDING_CACHE[r.id]
@@ -223,7 +237,7 @@ class RecommendationEngine:
                     
                     if len(RECIPE_EMBEDDING_CACHE) >= MAX_CACHE_SIZE:
                         RECIPE_EMBEDDING_CACHE.popitem(last=False)
-                    r_updated = getattr(r, "updated_at", 0)
+                    r_updated = getattr(r, "updated_at", 0) or 0
                     RECIPE_EMBEDDING_CACHE[r.id] = {"emb": emb, "updated_at": r_updated}
                     pending_embs[r.id] = emb
                 except Exception as e:
@@ -267,8 +281,9 @@ class RecommendationEngine:
 
         def calc_alignment(r):
             ingredient_align = 0.0
-            if preferences.get("ingredients"):
-                if any(matches_ingredient(r.name, ing) for ing in preferences["ingredients"]):
+            current_query_ingredients = preferences.get("current_query_ingredients")
+            if current_query_ingredients:
+                if match_ingredient(r, current_query_ingredients):
                     ingredient_align = 1.0
                     
             p_align = 0.5
@@ -302,23 +317,16 @@ class RecommendationEngine:
                         "hit": True
                     }))
             
-            if not embedder:
-                score = (
-                    ingredient_align * 0.45 +
-                    p_align * 0.35 +
-                    preference_score * 0.1 +
-                    diversity_score * 0.1
-                )
-                confidence = min(max(ingredient_align * 0.6 + p_align * 0.4, 0.0), 1.0)
-            else:
-                score = (
-                    ingredient_align * 0.3 +
-                    p_align * 0.2 +
-                    semantic_score * 0.3 +
-                    preference_score * 0.1 +
-                    diversity_score * 0.1
-                )
-                confidence = min(max(semantic_score * 0.5 + ingredient_align * 0.3 + p_align * 0.2, 0.0), 1.0)
+            diet_align = 1.0 if (preferences.get("diet_type") and r.diet_type and r.diet_type.lower() == preferences["diet_type"].lower()) else 0.0
+            
+            score = (
+                ingredient_align * 0.40 +
+                diet_align * 0.25 +
+                p_align * 0.15 +
+                c_align * 0.10 +
+                semantic_score * 0.10
+            )
+            confidence = min(max(ingredient_align * 0.5 + diet_align * 0.3 + p_align * 0.2, 0.0), 1.0)
                 
             return ingredient_align, p_align, c_align, score, confidence
 
@@ -329,8 +337,10 @@ class RecommendationEngine:
 
         print("FINAL CANDIDATES:", [x["recipe_obj"].name for x in top_scored])
 
-        if len(top_scored) == 0:
+        if len(top_scored) == 0 or fallback_mode:
             return self._fallback(db)
+            
+        print({"event": "final_selection", "data": [x["recipe_obj"].name for x in top_scored[:5]]})
 
         # STEP 7: Logging
         logging.info(f"[AI] Query: {query}")
@@ -362,15 +372,26 @@ class RecommendationEngine:
         logging.info("[AI Engine] Using fallback recommendations")
         from app.models.recipe import Recipe
 
-        recipes = db.query(Recipe).limit(5).all()
+        recipes = db.query(Recipe).all()
+        top = sorted(recipes, key=lambda r: r.protein or 0, reverse=True)[:20]
+        random.shuffle(top)
 
         return [
             {
-                "id": r.id,
-                "name": r.name,
-                "calories": r.calories,
-                "protein": r.protein,
-                "score": 1.0
+                "recipe": {
+                    "id": r.id,
+                    "name": r.name,
+                    "calories": r.calories,
+                    "protein": r.protein,
+                },
+                "score": 1.0,
+                "confidence": 0.5,
+                "explanation": {
+                    "ingredient_alignment": 0.5,
+                    "protein_alignment": 0.5,
+                    "calorie_alignment": 0.5,
+                    "fallback_mode": True
+                }
             }
-            for r in recipes
+            for r in top[:5]
         ]

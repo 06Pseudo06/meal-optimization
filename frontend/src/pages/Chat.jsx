@@ -37,6 +37,7 @@ export default function Chat() {
 
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
+  const [loadingText, setLoadingText] = useState('Thinking...');
   const messagesEndRef = useRef(null);
 
   /**
@@ -60,6 +61,19 @@ export default function Chat() {
     setMessages(prev => [...prev, { type: 'user', text: msg, image: image || null }]);
     setInput('');
     setLoading(true);
+    setLoadingText('Thinking...');
+    
+    // Set 3-second delay hint
+    const delayTimer = setTimeout(() => {
+      setLoadingText('Still processing...');
+    }, 3000);
+
+    if (msg.toLowerCase() === 'reset') {
+      setMessages([{
+        type: 'ai',
+        text: `Memory cleared! What would you like to eat?`
+      }]);
+    }
 
     try {
       const token = localStorage.getItem('accessToken');
@@ -95,7 +109,7 @@ export default function Chat() {
       if (meta?.reason === "no_intent") {
         setMessages(prev => [...prev, {
           type: 'ai',
-          text: "Tell me what you're looking for — ingredient, goal, or diet — and I'll suggest something relevant."
+          text: "Tell me more — ingredient, goal, or diet?"
         }]);
         setLoading(false);
         return;
@@ -113,28 +127,45 @@ export default function Chat() {
       const calorieAlignment = topRecipe?.explanation?.calorie_alignment ?? 0;
       const fallbackMode = topRecipe?.explanation?.fallback_mode ?? false;
       
+      // Strict explanation priority: ingredient > calorie > protein > fallback
       let reason = "it aligns with your preferences";
       
-      if (fallbackMode || meta?.reason === "fallback" || meta?.reason === "low_confidence") {
-        reason = "it's a reasonable match based on available options";
-      } else if (ingredientAlignment > 0 && calorieAlignment > 0.8) {
-        reason = "it matches your ingredient and calorie requirement";
-      } else if (ingredientAlignment > 0) {
+      if (ingredientAlignment > 0) {
         reason = "it matches your requested ingredient";
-      } else if (proteinAlignment > 0.8) {
-        reason = "it fits your protein requirement";
       } else if (calorieAlignment > 0.8) {
         reason = "it meets your calorie requirement";
+      } else if (proteinAlignment > 0.8) {
+        reason = "it fits your protein requirement";
+      } else if (fallbackMode || meta?.reason === "fallback" || meta?.reason === "low_confidence") {
+        reason = "it's a reasonable match based on available options";
       }
 
-      const intros = ["I recommend", "I suggest", "You might like", "How about"];
-      const randomIntro = intros[Math.floor(Math.random() * intros.length)];
-      const aiResponseText = `${randomIntro} **${recipeName}** because ${reason}.`;
+      let intros = ["I recommend", "I suggest"];
+      const conf = meta?.confidence || 0.5;
+      
+      if (conf > 0.8) {
+        intros = ["I highly recommend", "The perfect match is"];
+      } else if (conf > 0.5) {
+        intros = ["I suggest", "You might like"];
+      } else {
+        intros = ["Here's an option", "Here's a close match based on available options"];
+        reason = "it's the best fit we have right now";
+      }
+      
+      if (fallbackMode || meta?.reason === "fallback" || meta?.reason === "low_confidence") {
+        setMessages(prev => [...prev, {
+          type: 'ai',
+          text: `This is the closest match based on available recipes. I suggest **${recipeName}**.`
+        }]);
+      } else {
+        const randomIntro = intros[Math.floor(Math.random() * intros.length)];
+        const aiResponseText = `${randomIntro} **${recipeName}** because ${reason}.`;
 
-      setMessages(prev => [...prev, {
-        type: 'ai',
-        text: aiResponseText
-      }]);
+        setMessages(prev => [...prev, {
+          type: 'ai',
+          text: aiResponseText
+        }]);
+      }
     } catch (error) {
       console.error(error);
       
@@ -156,6 +187,7 @@ export default function Chat() {
         text: errorMsg
       }]);
     } finally {
+      clearTimeout(delayTimer);
       setLoading(false);
     }
   };
@@ -179,6 +211,9 @@ export default function Chat() {
             imageCaption={msg.imageCaption}
           />
         ))}
+        {loading && (
+          <ChatMessage type="ai" text={loadingText} />
+        )}
         {/* Invisible element to scroll to */}
         <div ref={messagesEndRef} />
       </div>
