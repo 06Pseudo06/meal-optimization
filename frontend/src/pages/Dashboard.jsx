@@ -36,7 +36,7 @@ export default function Dashboard() {
   /* Log Meal input state */
   const [mealInput, setMealInput] = useState('');
 
-  /* Analyze state: 'idle' | 'analyzing' | 'success' | 'error' */
+  /* Analyze state: 'idle' | 'analyzing' | 'success' | 'error' / 'info' */
   const [analyzeStatus, setAnalyzeStatus] = useState('idle');
   const [analyzeResult, setAnalyzeResult] = useState(null);
 
@@ -125,16 +125,55 @@ export default function Dashboard() {
   };
 
   /* ---- Analyze with AI ---- */
-  const handleAnalyze = async () => {
-    const text = mealInput.trim();
-    if (!text || analyzeStatus === 'analyzing') return;
+const handleAnalyze = async () => {
+  if (!mealInput.trim()) return;
 
-    setAnalyzeStatus('analyzing');
-    setAnalyzeResult(null);
+  const normalized = mealInput.toLowerCase().trim();
 
-    try {
+  const greetings = [
+    'hi',
+    'hii',
+    'hello',
+    'hey',
+    'yo',
+    'hola',
+    'sup',
+    'good morning',
+    'good evening'
+  ];
+
+  // ===== GREETING INTERCEPT =====
+  if (
+    greetings.includes(normalized) ||
+    greetings.some(g => normalized.startsWith(g))
+  ) {
+
+    const responses = [
+      'Hello! How can I help you with your nutrition today?',
+      'Hi! Tell me what meal you want to log or discover.',
+      'Hey! I can help with calories, protein, macros, and meal suggestions.',
+      'Hello! Tell me your cravings or fitness goals.'
+    ];
+
+    const randomResponse =
+      responses[Math.floor(Math.random() * responses.length)];
+
+    setAnalyzeResult({
+      message: randomResponse
+    });
+
+    setAnalyzeStatus('info');
+
+    return; // CRITICAL
+  }
+
+  // ===== NORMAL SEARCH FLOW =====
+
+  try {
+    setAnalyzeStatus('loading');
+
       /* Step 1: Search recipes (fuzzy + semantic) */
-      const searchResponse = await fetch(`http://localhost:8000/recipes/search?q=${encodeURIComponent(text)}`, {
+      const searchResponse = await fetch(`http://localhost:8000/recipes/search?q=${encodeURIComponent(mealInput)}`, {
         headers: { ...(token && { 'Authorization': `Bearer ${token}` }) }
       });
 
@@ -353,12 +392,17 @@ export default function Dashboard() {
           </button>
 
           {/* Status feedback message */}
-          {analyzeResult && (
-            <div className={`dashboard__log-result dashboard__log-result--${analyzeStatus}`}>
-              {analyzeStatus === 'success' ? <Check size={14} /> : <AlertCircle size={14} />}
-              <span>{analyzeResult.message}</span>
-            </div>
-          )}
+{analyzeResult && (
+  <div className={`dashboard__log-result dashboard__log-result--${analyzeStatus}`}>
+    {(analyzeStatus === 'success' || analyzeStatus === 'info') ? (
+      <Check size={14} />
+    ) : (
+      <AlertCircle size={14} />
+    )}
+
+    <span>{analyzeResult.message}</span>
+  </div>
+)}
         </div>
       </section>
 

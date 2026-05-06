@@ -77,6 +77,8 @@ export default function Chat() {
 
     try {
       const token = localStorage.getItem('accessToken');
+
+      
       const response = await fetch('http://localhost:8000/recipes/recommend', {
         method: 'POST',
         headers: {
