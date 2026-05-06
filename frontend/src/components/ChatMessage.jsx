@@ -14,8 +14,9 @@
 
 import { Sparkles } from 'lucide-react';
 import default_user from '../assets/default-user.jpg';
+import RecommendationCard from './RecommendationCard';
 
-export default function ChatMessage({ type, text, image, imageCaption }) {
+export default function ChatMessage({ type, text, image, imageCaption, recommendationData }) {
   const isAI = type === 'ai';
 
   /* Get user avatar from localStorage for user messages */
@@ -33,17 +34,25 @@ export default function ChatMessage({ type, text, image, imageCaption }) {
         </div>
       )}
 
-      {/* Message bubble */}
-      <div className="chat-message__bubble">
-        {/* Optional image — shown above text */}
-        {image && (
-          <div className="chat-message__image-wrap">
-            <img src={image} alt={imageCaption || 'Chat image'} className="chat-message__image" />
-            {imageCaption && <span className="chat-message__caption">{imageCaption}</span>}
+      {/* Message content wrapper */}
+      <div className="chat-message__content" style={{ display: 'flex', flexDirection: 'column', gap: '8px', maxWidth: '100%' }}>
+        {/* Message bubble */}
+        {(text || image) && (
+          <div className="chat-message__bubble">
+            {/* Optional image — shown above text */}
+            {image && (
+              <div className="chat-message__image-wrap">
+                <img src={image} alt={imageCaption || 'Chat image'} className="chat-message__image" />
+                {imageCaption && <span className="chat-message__caption">{imageCaption}</span>}
+              </div>
+            )}
+
+            {text && <p className="chat-message__text">{text}</p>}
           </div>
         )}
 
-        {text && <p className="chat-message__text">{text}</p>}
+        {/* Recommendation Card */}
+        {recommendationData && <RecommendationCard data={recommendationData} />}
       </div>
 
       {/* User avatar on user messages */}

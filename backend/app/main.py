@@ -57,30 +57,13 @@ def startup_event():
 
 def pre_warm_embeddings():
     try:
-        from app.ai.engine import embedder, RECIPE_EMBEDDING_CACHE
-        if not embedder:
-            return
-            
+        from app.ai.embedding_service import generate_offline_embeddings
+        from app.core.database import SessionLocal
+        
         db = SessionLocal()
         try:
-            recipes = db.query(Recipe).all()
-            pending = []
-            for r in recipes:
-                if not r.embedding:
-                    desc = getattr(r, "description", "") or ""
-                    text = f"{r.name} {desc}".strip()
-                    emb = embedder.encode(text).tolist()
-                    r.embedding = emb
-                    pending.append(r)
-                
-                RECIPE_EMBEDDING_CACHE[r.id] = {
-                    "emb": r.embedding,
-                    "updated_at": getattr(r, "updated_at", 0)
-                }
-            
-            if pending:
-                db.commit()
-                print(f"Pre-warmed and stored embeddings for {len(pending)} recipes.")
+            result = generate_offline_embeddings(db)
+            print("Pre-warm complete:", result)
         finally:
             db.close()
     except Exception as e:

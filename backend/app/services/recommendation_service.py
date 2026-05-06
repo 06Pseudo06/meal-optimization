@@ -31,6 +31,7 @@ def get_user_memory(user_id):
                 "protein_max": None,
                 "calorie_min": None,
                 "calorie_max": None,
+                "modifiers": [],
                 "turn_count": 0,
                 "last_active": current_time
             }
@@ -46,6 +47,7 @@ def get_user_memory(user_id):
                 "protein_max": None,
                 "calorie_min": None,
                 "calorie_max": None,
+                "modifiers": [],
                 "turn_count": 0,
                 "last_active": current_time
             }
@@ -206,6 +208,13 @@ def merge_intent(memory, new):
         merged_temporary["calorie_max"] = new["calorie_max"]
         merged_temporary["calorie_min"] = None
         
+    # 5. Semantic Modifiers Stack
+    query_class = new.get("query_class")
+    if query_class in ["conversational_refinement", "modifier_update"]:
+        # Extract modifiers from query via simple keyword matching since LLM doesn't map them yet
+        # Alternatively, assume the engine parses them from the query string
+        pass
+        
     return {
         "persistent": merged_persistent,
         "temporary": merged_temporary
@@ -235,6 +244,7 @@ def get_recommendations(user_input, db):
                 "ingredients": [],
                 "protein_min": None, "protein_max": None,
                 "calorie_min": None, "calorie_max": None,
+                "modifiers": [],
                 "turn_count": 0,
                 "last_active": time.time()
             }
@@ -246,6 +256,32 @@ def get_recommendations(user_input, db):
         new_intent = parse_query(query)
         print("PARSED INTENT (NEW):", new_intent)
         
+        # Handle greeting or ambiguity early
+        if new_intent.get("query_class") in ["greeting", "ambiguity"]:
+            print(json.dumps({"event": "onboarding_response_sent", "orchestration_id": orchestration_id}))
+            print(json.dumps({"event": "greeting_rendered"}))
+            print(json.dumps({"event": "conversational_response_sent"}))
+            print(json.dumps({"event": "frontend_conversation_mode"}))
+            
+            msg = "Hello! How can I help you with your meal planning today?"
+            if new_intent.get("query_class") == "ambiguity":
+                msg = "Hi there! Tell me your preferences and I'll help you find a meal."
+            return {
+                "message": msg,
+                "data": [],
+                "meta": {
+                    "source": "ai", 
+                    "reason": "conversational", 
+                    "query_class": new_intent["query_class"], 
+                    "confidence": 0.9, 
+                    "orchestration_id": orchestration_id
+                }
+            }
+
+        # Handle recommendation_retry
+        if new_intent.get("query_class") == "recommendation_retry":
+            print(json.dumps({"event": "retry_request_detected", "orchestration_id": orchestration_id}))
+
         # Merge with memory
         final_intent = merge_intent(conversation_memory, new_intent)
         
@@ -255,12 +291,14 @@ def get_recommendations(user_input, db):
             final_intent["temporary"].get("ingredients"),
             final_intent["persistent"].get("diet_type"),
             final_intent["temporary"].get("protein_min"),
-            final_intent["temporary"].get("calorie_max")
-        ]):
+            final_intent["temporary"].get("calorie_max"),
+            new_intent.get("tags"),
+            new_intent.get("goal")
+        ]) and new_intent.get("query_class") not in ["conversational_refinement", "recommendation_retry", "greeting"]:
             return {
                 "message": "Do you want high protein, low calorie, or a specific ingredient?",
                 "data": [],
-                "meta": {"source": "ai", "reason": "no_intent", "confidence": new_intent.get("_confidence", 0.2), "orchestration_id": orchestration_id}
+                "meta": {"source": "ai", "reason": "no_intent", "query_class": "clarification", "confidence": new_intent.get("_confidence", 0.2), "orchestration_id": orchestration_id}
             }
 
         # Update Memory
@@ -308,10 +346,8 @@ def get_recommendations(user_input, db):
             
         if not results or all(not r.get("recipe") for r in results):
             print("AI OUTPUT EMPTY")
-            return {
-                "data": [],
-                "meta": {"source": "ai", "reason": "strict_filter_empty", "confidence": 0.0}
-            }
+            print(json.dumps({"event": "fallback_decision", "reason": "ai_output_empty"}))
+            return fallback_recommendations(db, reason="strict_filter_empty")
 
         if results and results[0].get("recipe"):
             update_user_profile(db, user_id, results[0]["recipe"], final_intent)
@@ -403,11 +439,15 @@ def recommend_recipes(
     
     results = get_recommendations(user_input, db)
     
-    if results.get("meta", {}).get("reason") == "no_intent":
+    if results.get("meta", {}).get("reason") in ["no_intent", "greeting", "ambiguity"]:
         return results
 
     # Final safeguard before normalization
-    if not results or (not results.get("data") and results.get("meta", {}).get("reason") not in ["no_intent", "strict_filter_empty"]) or all(r.get("recipe", {}) == {} for r in results.get("data", [])):
+    has_data = bool(results and results.get("data"))
+    has_valid_recipes = has_data and any(r.get("recipe", {}) != {} for r in results.get("data", []))
+    
+    if not has_valid_recipes and results.get("meta", {}).get("reason") not in ["no_intent", "greeting", "ambiguity", "strict_filter_empty"]:
+        print(json.dumps({"event": "fallback_decision", "reason": "final_safeguard"}))
         results = fallback_recommendations(db, reason="low_confidence")
     
     # 3️ Normalize all results to guarantee strict structure

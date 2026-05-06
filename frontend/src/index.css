@@ -205,6 +205,8 @@ textarea::placeholder {
   border: 1px solid var(--color-border);
   border-radius: var(--radius-lg);
   padding: 20px;
+  display: flex;
+  flex-direction: column;
   transition: border-color var(--transition-fast), transform var(--transition-fast);
 }
 

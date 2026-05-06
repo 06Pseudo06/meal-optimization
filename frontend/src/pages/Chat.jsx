@@ -62,7 +62,7 @@ export default function Chat() {
     setInput('');
     setLoading(true);
     setLoadingText('Thinking...');
-    
+
     // Set 3-second delay hint
     const delayTimer = setTimeout(() => {
       setLoadingText('Still processing...');
@@ -98,77 +98,67 @@ export default function Chat() {
       }
 
       const responseData = await response.json();
-      
-      if (!responseData || !responseData.data || responseData.data.length === 0) {
-        throw new Error("No recipes found");
-      }
-      
       const meta = responseData?.meta;
       const data = responseData?.data;
 
-      if (meta?.reason === "no_intent") {
+      if (responseData.message && (!data || data.length === 0)) {
         setMessages(prev => [...prev, {
           type: 'ai',
-          text: "🔍 **Clarification Needed**\nI need a bit more detail! Do you want weight loss or muscle gain meals? Vegetarian or non-vegetarian? Any allergies?"
+          text: responseData.message
         }]);
         setLoading(false);
         return;
       }
-      
+
+      if (!data || data.length === 0) {
+        throw new Error("No recipes found");
+      }
+
       const topRecipe = data?.[0];
       const recipeName = topRecipe?.recipe?.name;
-      
+
       if (!recipeName) {
         throw new Error("No recipes found");
       }
-      
-      const ingredientAlignment = topRecipe?.explanation?.ingredient_alignment ?? 0;
-      const proteinAlignment = topRecipe?.explanation?.protein_alignment ?? 0;
-      const calorieAlignment = topRecipe?.explanation?.calorie_alignment ?? 0;
+
       const fallbackMode = topRecipe?.explanation?.fallback_mode ?? false;
-      
-      // Strict explanation priority: ingredient > calorie > protein > fallback
-      let reason = "it aligns with your preferences";
-      
-      if (ingredientAlignment > 0) {
-        reason = "it matches your requested ingredient";
-      } else if (calorieAlignment > 0.8) {
-        reason = "it meets your calorie requirement";
-      } else if (proteinAlignment > 0.8) {
-        reason = "it fits your protein requirement";
-      } else if (fallbackMode || meta?.reason === "fallback" || meta?.reason === "low_confidence") {
-        reason = "it's a reasonable match based on available options";
+      const explanationText = topRecipe?.explanation_text || "This recipe was selected because it's a reasonable match based on available options.";
+      const conf = topRecipe?.confidence ?? (meta?.confidence || 0.5);
+
+      let confidenceLabel = "💡 Alternative Pick";
+      if (!fallbackMode && conf >= 0.35) {
+        if (conf >= 0.80) {
+          confidenceLabel = "✅ Recommended";
+        } else if (conf >= 0.55) {
+          confidenceLabel = "✨ Great Fit";
+        } else {
+          confidenceLabel = "💡 Alternative Pick";
+        }
       }
 
-      let intros = ["I recommend", "I suggest"];
-      const conf = meta?.confidence || 0.5;
-      
-      if (conf > 0.8) {
-        intros = ["I highly recommend", "The perfect match is"];
-      } else if (conf > 0.5) {
-        intros = ["I suggest", "You might like"];
-      } else {
-        intros = ["Here's an option", "Here's a close match based on available options"];
-        reason = "it's the best fit we have right now";
-      }
-      
-      if (fallbackMode || meta?.reason === "fallback" || meta?.reason === "low_confidence") {
-        setMessages(prev => [...prev, {
-          type: 'ai',
-          text: `⚠️ **Recommendation Disclaimer**\nThis is the closest match based on available recipes.\n\nI suggest **${recipeName}**.`
-        }]);
-      } else {
-        const randomIntro = intros[Math.floor(Math.random() * intros.length)];
-        const aiResponseText = `✨ **Top Pick**\n${randomIntro} **${recipeName}** because ${reason}.`;
+      // Create recommendation payload
+      const recommendationData = {
+        name: recipeName,
+        calories: topRecipe.recipe.calories,
+        protein: topRecipe.recipe.protein,
+        carbs: topRecipe.recipe.carbs || Math.round(topRecipe.recipe.calories * 0.4 / 4),
+        fats: topRecipe.recipe.fats || Math.round(topRecipe.recipe.calories * 0.3 / 9), 
+        confidenceLabel,
+        explanationText,
+        tags: topRecipe.recipe.tags || [],
+        dietType: topRecipe.recipe.diet_type,
+        isQuick: topRecipe.recipe.is_quick,
+        isGymFriendly: topRecipe.recipe.is_gym_friendly
+      };
 
-        setMessages(prev => [...prev, {
-          type: 'ai',
-          text: aiResponseText
-        }]);
-      }
+      setMessages(prev => [...prev, {
+        type: 'ai',
+        text: "Here is a great option for you based on your preferences:",
+        recommendationData: recommendationData
+      }]);
     } catch (error) {
       console.error(error);
-      
+
       let errorMsg;
       if (error.message === "Failed to fetch") {
         errorMsg = "The recommendation service is temporarily unavailable.";
@@ -209,6 +199,7 @@ export default function Chat() {
             text={msg.text}
             image={msg.image}
             imageCaption={msg.imageCaption}
+            recommendationData={msg.recommendationData}
           />
         ))}
         {loading && (
