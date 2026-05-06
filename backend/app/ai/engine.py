@@ -59,7 +59,7 @@ class RecommendationEngine:
         preferences = input_data.get("preferences", {})
         constraints = input_data.get("constraints", {})
 
-        # Diet filter
+        # Diet filter (Absolute Deterministic Constraint)
         if preferences.get("diet_type"):
             recipes = [
                 r for r in recipes
@@ -69,16 +69,6 @@ class RecommendationEngine:
         original_recipes = recipes.copy() # Keep a copy to relax if needed
         fallback_mode = False
         
-        print({"event": "sample_recipes", "data": [r.name for r in recipes[:10]]})
-        print({"event": "chicken_matches", "data": [r.name for r in recipes if "chicken" in r.name.lower()]})
-        
-        # STEP 1 - diet filter
-        diet_type = preferences.get("diet_type")
-        if diet_type == "veg":
-            filtered_diet = [r for r in recipes if r.diet_type and r.diet_type.lower() == "veg"]
-            if filtered_diet:
-                recipes = filtered_diet
-
         def match_ingredient(recipe, ingredients):
             name = (recipe.name or "").lower()
             for ing in ingredients:
@@ -87,33 +77,9 @@ class RecommendationEngine:
                     return True
             return False
 
-        print("INGREDIENT FILTER APPLIED:", preferences.get("ingredients"))
-        print("AVAILABLE RECIPES:", [r.name for r in recipes])
-
-        # STEP 2 - ingredient filter (HARD PRIORITY)
-        filtered = recipes
-        if preferences.get("ingredients"):
-            temp = [r for r in recipes if match_ingredient(r, preferences["ingredients"])]
-            if temp:
-                filtered = temp
-            else:
-                print({"event": "ingredient_no_match", "ingredients": preferences["ingredients"]})
-        recipes = filtered
-        print({"event": "filtered_recipes", "data": [r.name for r in recipes[:10]]})
-
-        # Protein constraint
-        if constraints.get("protein_min") is not None:
-            recipes = [r for r in recipes if r.protein and r.protein >= constraints["protein_min"]]
-        if constraints.get("protein_max") is not None:
-            recipes = [r for r in recipes if r.protein and r.protein <= constraints["protein_max"]]
-
-        # Calorie constraint
-        if constraints.get("calorie_min") is not None:
-            recipes = [r for r in recipes if r.calories and r.calories >= constraints["calorie_min"]]
-        if constraints.get("calorie_max") is not None:
-            recipes = [r for r in recipes if r.calories and r.calories <= constraints["calorie_max"]]
-
-        print("FINAL RECIPES:", [r.name for r in recipes])
+        # NOTE: Ingredient, Protein, and Calorie hard filters have been removed 
+        # in favor of soft weighted scoring to improve recommendation quality 
+        # and prevent empty states.
 
         # STEP 3: NLP Signals
         query = (input_data.get("query") or "").lower()
@@ -189,8 +155,11 @@ class RecommendationEngine:
             return min(score, 1.0)
 
         def get_diversity_score(user_profile, recipe):
-            recent_ids = [h["recipe_id"] for h in user_profile.get("history", [])[-5:]]
-            return 0.0 if recipe.id in recent_ids else 1.0
+            recent_ids = [h["recipe_id"] for h in user_profile.get("history", [])[-15:]]
+            if recipe.id in recent_ids:
+                print(json.dumps({"event": "repeat_penalty", "recipe_id": recipe.id}))
+                return -1.0 # Heavy penalty for repeats
+            return 0.1 # Small freshness boost
 
         # Cache invalidation and batch computation
         pending = []
@@ -281,24 +250,24 @@ class RecommendationEngine:
 
         def calc_alignment(r):
             ingredient_align = 0.0
-            current_query_ingredients = preferences.get("current_query_ingredients")
+            current_query_ingredients = preferences.get("current_query_ingredients") or preferences.get("ingredients")
             if current_query_ingredients:
                 if match_ingredient(r, current_query_ingredients):
                     ingredient_align = 1.0
                     
             p_align = 0.5
             if constraints.get("protein_min"):
-                p_align = 1.0 if (r.protein and r.protein >= constraints["protein_min"]) else 0.8
+                p_align = 1.0 if (r.protein and r.protein >= constraints["protein_min"]) else 0.0
             elif constraints.get("protein_max"):
-                p_align = 1.0 if (r.protein and r.protein <= constraints["protein_max"]) else 0.8
+                p_align = 1.0 if (r.protein and r.protein <= constraints["protein_max"]) else 0.0
             elif signals["high_protein"]:
                 p_align = 0.95
                 
             c_align = 0.5
             if constraints.get("calorie_max"):
-                c_align = 1.0 if (r.calories and r.calories <= constraints["calorie_max"]) else 0.8
+                c_align = 1.0 if (r.calories and r.calories <= constraints["calorie_max"]) else 0.0
             elif constraints.get("calorie_min"):
-                c_align = 1.0 if (r.calories and r.calories >= constraints["calorie_min"]) else 0.8
+                c_align = 1.0 if (r.calories and r.calories >= constraints["calorie_min"]) else 0.0
             elif signals["low_calorie"]:
                 c_align = 0.95
             
@@ -311,22 +280,32 @@ class RecommendationEngine:
                 if cached and cached["emb"]:
                     RECIPE_EMBEDDING_CACHE.move_to_end(r.id)
                     semantic_score = compute_similarity(query_emb, cached["emb"])
-                    logging.info(json.dumps({
-                        "event": "embedding_cache_hit",
-                        "recipe_id": r.id,
-                        "hit": True
-                    }))
             
             diet_align = 1.0 if (preferences.get("diet_type") and r.diet_type and r.diet_type.lower() == preferences["diet_type"].lower()) else 0.0
+            
+            # Tie breaking deterministic factor based on ID
+            tie_breaker = (r.id % 100) * 0.0001
             
             score = (
                 ingredient_align * 0.40 +
                 diet_align * 0.25 +
                 p_align * 0.15 +
                 c_align * 0.10 +
-                semantic_score * 0.10
+                semantic_score * 0.10 +
+                diversity_score + 
+                tie_breaker
             )
             confidence = min(max(ingredient_align * 0.5 + diet_align * 0.3 + p_align * 0.2, 0.0), 1.0)
+            
+            logging.info(json.dumps({
+                "event": "recipe_score",
+                "recipe_id": r.id,
+                "recipe_name": r.name,
+                "diversity_penalty": diversity_score,
+                "protein_match_score": p_align,
+                "ingredient_match_score": ingredient_align,
+                "final_score": round(score, 4)
+            }))
                 
             return ingredient_align, p_align, c_align, score, confidence
 
@@ -338,7 +317,7 @@ class RecommendationEngine:
         print("FINAL CANDIDATES:", [x["recipe_obj"].name for x in top_scored])
 
         if len(top_scored) == 0 or fallback_mode:
-            return self._fallback(db)
+            return self._fallback(db, user_profile)
             
         print({"event": "final_selection", "data": [x["recipe_obj"].name for x in top_scored[:5]]})
 
@@ -368,12 +347,22 @@ class RecommendationEngine:
             for x in top_scored
         ]
 
-    def _fallback(self, db):
+    def _fallback(self, db, user_profile=None):
         logging.info("[AI Engine] Using fallback recommendations")
         from app.models.recipe import Recipe
 
         recipes = db.query(Recipe).all()
-        top = sorted(recipes, key=lambda r: r.protein or 0, reverse=True)[:20]
+        # Fallback rotation: shuffle all top 50
+        top = sorted(recipes, key=lambda r: r.protein or 0, reverse=True)[:50]
+        
+        # Penalize repeats in fallback too
+        if user_profile:
+            recent_ids = [h["recipe_id"] for h in user_profile.get("history", [])[-15:]]
+            top = [r for r in top if r.id not in recent_ids]
+            if not top:
+                top = recipes[:50] # Failsafe if everything was seen
+                
+        print(json.dumps({"event": "fallback_rotation", "pool_size": len(top)}))
         random.shuffle(top)
 
         return [

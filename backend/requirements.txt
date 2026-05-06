@@ -12,3 +12,4 @@ pandas
 passlib[bcrypt]
 sentence-transformers
 requests
+google-generativeai

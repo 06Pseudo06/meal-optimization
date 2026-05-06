@@ -103,19 +103,19 @@ export default function Chat() {
         throw new Error("No recipes found");
       }
       
-      const meta = responseData.meta;
-      const data = responseData.data;
+      const meta = responseData?.meta;
+      const data = responseData?.data;
 
       if (meta?.reason === "no_intent") {
         setMessages(prev => [...prev, {
           type: 'ai',
-          text: "Tell me more — ingredient, goal, or diet?"
+          text: "🔍 **Clarification Needed**\nI need a bit more detail! Do you want weight loss or muscle gain meals? Vegetarian or non-vegetarian? Any allergies?"
         }]);
         setLoading(false);
         return;
       }
       
-      const topRecipe = data[0];
+      const topRecipe = data?.[0];
       const recipeName = topRecipe?.recipe?.name;
       
       if (!recipeName) {
@@ -155,11 +155,11 @@ export default function Chat() {
       if (fallbackMode || meta?.reason === "fallback" || meta?.reason === "low_confidence") {
         setMessages(prev => [...prev, {
           type: 'ai',
-          text: `This is the closest match based on available recipes. I suggest **${recipeName}**.`
+          text: `⚠️ **Recommendation Disclaimer**\nThis is the closest match based on available recipes.\n\nI suggest **${recipeName}**.`
         }]);
       } else {
         const randomIntro = intros[Math.floor(Math.random() * intros.length)];
-        const aiResponseText = `${randomIntro} **${recipeName}** because ${reason}.`;
+        const aiResponseText = `✨ **Top Pick**\n${randomIntro} **${recipeName}** because ${reason}.`;
 
         setMessages(prev => [...prev, {
           type: 'ai',
@@ -171,20 +171,20 @@ export default function Chat() {
       
       let errorMsg;
       if (error.message === "Failed to fetch") {
-        errorMsg = "Backend unreachable";
+        errorMsg = "The recommendation service is temporarily unavailable.";
       } else if (error.message === "No recipes found") {
-        errorMsg = "I couldn't find any recipes matching your exact request. Could you tell me more about what you're looking for?";
+        errorMsg = "I couldn't understand that preference. Please try a more specific meal request.";
       } else if (error.message === "Invalid token") {
         errorMsg = "Your session has expired or token is invalid. Please log in again.";
       } else if (error.response) {
-        errorMsg = "Server error";
+        errorMsg = "The recommendation service is temporarily unavailable. Please try again later.";
       } else {
-        errorMsg = "Unexpected failure";
+        errorMsg = "I couldn't process that. Please try a more specific meal request.";
       }
 
       setMessages(prev => [...prev, {
         type: 'ai',
-        text: errorMsg
+        text: `❌ **System Alert**\n${errorMsg}`
       }]);
     } finally {
       clearTimeout(delayTimer);
@@ -223,6 +223,7 @@ export default function Chat() {
         value={input}
         onChange={setInput}
         onSend={handleSend}
+        disabled={loading}
       />
     </div>
   );

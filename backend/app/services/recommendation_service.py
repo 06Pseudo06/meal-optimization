@@ -11,20 +11,46 @@ from app.ai.engine import RecommendationEngine
 from app.models.user_profile import UserProfile
 from app.models.user_history import UserHistory
 
+import time
+
 # In-memory storage for conversational context per user
 USER_MEMORY = {}
 
 def get_user_memory(user_id):
+    current_time = time.time()
     if user_id not in USER_MEMORY:
         USER_MEMORY[user_id] = {
-            "ingredients": None,
-            "diet_type": None,
-            "protein_min": None,
-            "protein_max": None,
-            "calorie_min": None,
-            "calorie_max": None,
-            "turn_count": 0
+            "persistent": {
+                "diet_type": None,
+                "allergies": [],
+                "cuisine": None
+            },
+            "temporary": {
+                "ingredients": [],
+                "protein_min": None,
+                "protein_max": None,
+                "calorie_min": None,
+                "calorie_max": None,
+                "turn_count": 0,
+                "last_active": current_time
+            }
         }
+        print(json.dumps({"event": "memory_created", "level": "INFO"}))
+    else:
+        # Memory Expiration Logic: decay temporary after 30 mins
+        if current_time - USER_MEMORY[user_id]["temporary"].get("last_active", current_time) > 1800:
+            print(json.dumps({"event": "memory_expired", "reason": "timeout_decay", "level": "INFO"}))
+            USER_MEMORY[user_id]["temporary"] = {
+                "ingredients": [],
+                "protein_min": None,
+                "protein_max": None,
+                "calorie_min": None,
+                "calorie_max": None,
+                "turn_count": 0,
+                "last_active": current_time
+            }
+        else:
+            USER_MEMORY[user_id]["temporary"]["last_active"] = current_time
     return USER_MEMORY[user_id]
 
 def get_user_profile(db, user_id):
@@ -134,52 +160,66 @@ def normalize_recommendation(item):
 def merge_intent(memory, new):
     NON_VEG = ["chicken", "egg", "eggs", "fish", "meat", "beef", "pork"]
     
-    merged = {
-        "ingredients": memory.get("ingredients", []),
-        "diet_type": memory.get("diet_type"),
-        "protein_min": memory.get("protein_min"),
-        "protein_max": memory.get("protein_max"),
-        "calorie_min": memory.get("calorie_min"),
-        "calorie_max": memory.get("calorie_max"),
-    }
+    persistent = memory["persistent"]
+    temporary = memory["temporary"]
+    
+    merged_persistent = dict(persistent)
+    merged_temporary = dict(temporary)
     
     # 1. Ingredient overwrite
     if new.get("ingredients"):
-        merged["ingredients"] = new["ingredients"]
+        merged_temporary["ingredients"] = list(set([str(i).lower().strip() for i in (merged_temporary["ingredients"] + new["ingredients"]) if i]))
+        print(json.dumps({"event": "memory_updated", "level": "INFO", "field": "ingredients"}))
         
     # 2. Diet override
     if new.get("diet_type"):
-        merged["diet_type"] = new["diet_type"]
+        merged_persistent["diet_type"] = str(new["diet_type"]).lower().strip()
+        print(json.dumps({"event": "memory_updated", "level": "INFO", "field": "diet_type"}))
         
-    # 3. Conflict resolution
-    if merged["diet_type"] == "veg":
-        if merged.get("ingredients"):
-            merged["ingredients"] = [i for i in merged["ingredients"] if i not in NON_VEG]
+    # 3. Conflict resolution priority
+    if merged_persistent.get("diet_type") == "veg":
+        # Vegetarian overrides chicken preference
+        if merged_temporary.get("ingredients"):
+            filtered = [i for i in merged_temporary["ingredients"] if i not in NON_VEG]
+            if len(filtered) < len(merged_temporary["ingredients"]):
+                print(json.dumps({"event": "memory_conflict_resolved", "level": "INFO", "resolution": "vegetarian_overrides_meat"}))
+            merged_temporary["ingredients"] = filtered
             
-    if merged.get("ingredients"):
-        if any(i in NON_VEG for i in merged["ingredients"]):
-            merged["diet_type"] = "non_veg"
+    if merged_temporary.get("ingredients"):
+        if any(i in NON_VEG for i in merged_temporary["ingredients"]):
+            if merged_persistent.get("diet_type") == "veg":
+                print(json.dumps({"event": "memory_conflict_resolved", "level": "INFO", "resolution": "meat_ingredient_overrides_veg_diet"}))
+            merged_persistent["diet_type"] = "non_veg"
             
-    # 4. Constraint conflict
+    # 4. Constraints
     if new.get("protein_min") is not None:
-        merged["protein_min"] = new["protein_min"]
-        merged["protein_max"] = None
+        merged_temporary["protein_min"] = new["protein_min"]
+        merged_temporary["protein_max"] = None
     elif new.get("protein_max") is not None:
-        merged["protein_max"] = new["protein_max"]
-        merged["protein_min"] = None
+        merged_temporary["protein_max"] = new["protein_max"]
+        merged_temporary["protein_min"] = None
         
     if new.get("calorie_min") is not None:
-        merged["calorie_min"] = new["calorie_min"]
-        merged["calorie_max"] = None
+        merged_temporary["calorie_min"] = new["calorie_min"]
+        merged_temporary["calorie_max"] = None
     elif new.get("calorie_max") is not None:
-        merged["calorie_max"] = new["calorie_max"]
-        merged["calorie_min"] = None
+        merged_temporary["calorie_max"] = new["calorie_max"]
+        merged_temporary["calorie_min"] = None
         
-    return merged
+    return {
+        "persistent": merged_persistent,
+        "temporary": merged_temporary
+    }
+
+import uuid
+import time
 
 engine = RecommendationEngine()
 
 def get_recommendations(user_input, db):
+    orchestration_id = str(uuid.uuid4())
+    start_time = time.time()
+    print(json.dumps({"event": "orchestration_started", "orchestration_id": orchestration_id}))
     try:
         user_id = getattr(user_input, "user_id", None)
         conversation_memory = get_user_memory(user_id)
@@ -189,16 +229,18 @@ def get_recommendations(user_input, db):
 
         # STEP 5 - RESET HANDLING & MEMORY LIMITATION
         # Auto-reset if context becomes too long (limit drift)
-        if conversation_memory.get("turn_count", 0) > 5 or "reset" in q_lower or "clear" in q_lower:
-            USER_MEMORY[user_id] = {
-                "ingredients": [], "diet_type": None,
+        if conversation_memory["temporary"].get("turn_count", 0) > 5 or "reset" in q_lower or "clear" in q_lower:
+            print(json.dumps({"event": "memory_pruned", "reason": "turn_limit_or_reset"}))
+            USER_MEMORY[user_id]["temporary"] = {
+                "ingredients": [],
                 "protein_min": None, "protein_max": None,
                 "calorie_min": None, "calorie_max": None,
-                "turn_count": 0
+                "turn_count": 0,
+                "last_active": time.time()
             }
             conversation_memory = USER_MEMORY[user_id]
             
-        conversation_memory["turn_count"] = conversation_memory.get("turn_count", 0) + 1
+        conversation_memory["temporary"]["turn_count"] = conversation_memory["temporary"].get("turn_count", 0) + 1
 
         from app.ai.intent_parser import parse_query
         new_intent = parse_query(query)
@@ -210,15 +252,15 @@ def get_recommendations(user_input, db):
         # We need intent to be complete to proceed. If LLM says it's incomplete AND
         # our merged final_intent still doesn't have anything concrete, we ask for more.
         if new_intent.get("intent_complete") is False and not any([
-            final_intent.get("ingredients"),
-            final_intent.get("diet_type"),
-            final_intent.get("protein_min"),
-            final_intent.get("calorie_max")
+            final_intent["temporary"].get("ingredients"),
+            final_intent["persistent"].get("diet_type"),
+            final_intent["temporary"].get("protein_min"),
+            final_intent["temporary"].get("calorie_max")
         ]):
             return {
                 "message": "Do you want high protein, low calorie, or a specific ingredient?",
                 "data": [],
-                "meta": {"source": "ai", "reason": "no_intent", "confidence": new_intent.get("_confidence", 0.2)}
+                "meta": {"source": "ai", "reason": "no_intent", "confidence": new_intent.get("_confidence", 0.2), "orchestration_id": orchestration_id}
             }
 
         # Update Memory
@@ -239,17 +281,17 @@ def get_recommendations(user_input, db):
             },
         
             "preferences": {
-                "diet_type": final_intent["diet_type"],
-                "ingredients": final_intent["ingredients"] if final_intent["ingredients"] else [],
+                "diet_type": final_intent["persistent"]["diet_type"],
+                "ingredients": final_intent["temporary"]["ingredients"] if final_intent["temporary"]["ingredients"] else [],
                 "current_query_ingredients": current_intent["ingredients"] if current_intent["ingredients"] else [],
-                "has_ingredient_intent": bool(final_intent["ingredients"])
+                "has_ingredient_intent": bool(final_intent["temporary"]["ingredients"])
             },
         
             "constraints": {
-                "calorie_min": final_intent["calorie_min"],
-                "calorie_max": final_intent["calorie_max"],
-                "protein_min": final_intent["protein_min"],
-                "protein_max": final_intent["protein_max"]
+                "calorie_min": final_intent["temporary"]["calorie_min"],
+                "calorie_max": final_intent["temporary"]["calorie_max"],
+                "protein_min": final_intent["temporary"]["protein_min"],
+                "protein_max": final_intent["temporary"]["protein_max"]
             }
         }
         
@@ -277,9 +319,15 @@ def get_recommendations(user_input, db):
         else:
             confidence = new_intent.get("_confidence", 0.5)
 
+        print(json.dumps({
+            "event": "orchestration_completed",
+            "orchestration_id": orchestration_id,
+            "total_latency_ms": round((time.time() - start_time) * 1000)
+        }))
+
         return {
             "data": results,
-            "meta": {"source": "ai", "reason": "normal", "confidence": confidence}
+            "meta": {"source": "ai", "reason": "normal", "confidence": confidence, "orchestration_id": orchestration_id}
         }
 
     except Exception as e:

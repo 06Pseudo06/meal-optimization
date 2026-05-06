@@ -33,6 +33,7 @@ services:
 
     environment:
       DATABASE_URL: postgresql://postgres:postgres@db:5432/meal_optimization
+      GEMINI_API_KEY: ${GEMINI_API_KEY}
 
     ports:
       - "8000:8000"

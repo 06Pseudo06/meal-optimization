@@ -20,6 +20,29 @@ import time
 
 @app.on_event("startup")
 def startup_event():
+    import logging
+    import sys
+    import json
+    from app.core.config import settings
+    from sqlalchemy import text
+    
+    # 1. Validate Gemini
+    if not settings.gemini_api_key:
+        logging.error(json.dumps({"event": "startup_validation_failed", "reason": "Missing GEMINI_API_KEY"}))
+        sys.exit(1)
+        
+    # 2. Validate DB
+    try:
+        db = SessionLocal()
+        db.execute(text("SELECT 1"))
+        db.close()
+    except Exception as e:
+        logging.error(json.dumps({"event": "startup_validation_failed", "reason": f"DB Connection Failed: {e}"}))
+        sys.exit(1)
+        
+    logging.info(json.dumps({"event": "settings_loaded"}))
+    logging.info(json.dumps({"event": "startup_validation_passed"}))
+
     def pre_warm_supervised():
         import logging
         for attempt in range(5):
@@ -67,11 +90,18 @@ from fastapi import Request
 from fastapi.responses import JSONResponse
 from app.core.exceptions import ProfileNotFoundException
 
+import uuid
+import json
+import logging
+import traceback
+
 RATE_LIMIT_DB = {}
 
 @app.middleware("http")
 async def metrics_and_rate_limit_middleware(request: Request, call_next):
     start_time = time.time()
+    request_id = str(uuid.uuid4())
+    request.state.request_id = request_id
     
     # Rate Limiting
     user_id = request.headers.get("user-id") or request.headers.get("authorization")
@@ -85,18 +115,30 @@ async def metrics_and_rate_limit_middleware(request: Request, call_next):
     timestamps.append(start_time)
     RATE_LIMIT_DB[client_id] = timestamps
     
-    response = await call_next(request)
+    try:
+        response = await call_next(request)
+        status_code = response.status_code
+    except Exception as e:
+        logging.error(json.dumps({
+            "event": "request_failed",
+            "level": "ERROR",
+            "request_id": request_id,
+            "error": str(e),
+            "trace": traceback.format_exc()[:500]
+        }))
+        status_code = 500
+        response = JSONResponse(status_code=500, content={"detail": "Internal Server Error"})
     
     # Metrics
     process_time = (time.time() - start_time) * 1000
-    import logging
-    import json
     logging.info(json.dumps({
         "event": "request_completed",
+        "level": "INFO",
+        "request_id": request_id,
         "path": request.url.path,
         "method": request.method,
         "latency_ms": round(process_time, 2),
-        "status_code": response.status_code
+        "status_code": status_code
     }))
     
     return response
