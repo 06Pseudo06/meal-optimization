@@ -12,11 +12,12 @@
  * User data is read dynamically from localStorage.
  */
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useRef } from 'react';
 import {
   Home as HomeIcon, Flame, Beef, Wheat, Droplet,
   Brain, Mic, MicOff, Sparkles, ChevronRight, Loader2, Check, AlertCircle, X
 } from 'lucide-react';
+import { useDashboard } from '../context/DashboardContext';
 import './Dashboard.css';
 
 export default function Dashboard() {
@@ -30,6 +31,7 @@ export default function Dashboard() {
   })();
 
   const token = localStorage.getItem('accessToken');
+  const { dashboardData, loading, refreshDashboard } = useDashboard();
 
   /* Log Meal input state */
   const [mealInput, setMealInput] = useState('');
@@ -45,102 +47,30 @@ export default function Dashboard() {
   /* View All modal state */
   const [showAllMeals, setShowAllMeals] = useState(false);
 
-  /* State for API Data */
-  const [apiData, setApiData] = useState({
-    caloriesConsumed: 0,
-    calorieTarget: 2000,
-    proteinConsumed: 0,
-    proteinTarget: 100,
-    carbsConsumed: 0,
-    carbsTarget: 0,
-    fatsConsumed: 0,
-    fatsTarget: 0
-  });
-
-  /* User profile (weight, targets) */
-  const [userProfile, setUserProfile] = useState(null);
-
-  /* Recent intake from recommendation history */
-  const [recentIntake, setRecentIntake] = useState([]);
-
-  /* Fetch today's summary */
-  const fetchTodaySummary = () => {
-    if (token) {
-      fetch('http://localhost:8000/logs/today', {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      })
-      .then(res => res.json())
-      .then(data => {
-        if (!data.detail) {
-          setApiData({
-            caloriesConsumed: data.calories_consumed || 0,
-            calorieTarget: data.calorie_target || 2000,
-            proteinConsumed: data.protein_consumed || 0,
-            proteinTarget: data.protein_target || 100,
-            carbsConsumed: data.carbs_consumed || 0,
-            carbsTarget: data.carbs_target || 0,
-            fatsConsumed: data.fats_consumed || 0,
-            fatsTarget: data.fats_target || 0
-          });
-        }
-      })
-      .catch(err => console.error("Failed to fetch dashboard summary", err));
-    }
+  /* Extract global context state */
+  const apiData = {
+    caloriesConsumed: dashboardData?.macros?.calories_consumed || 0,
+    calorieTarget: dashboardData?.macros?.calorie_target || 2000,
+    proteinConsumed: dashboardData?.macros?.protein_consumed || 0,
+    proteinTarget: dashboardData?.macros?.protein_target || 100,
+    carbsConsumed: dashboardData?.macros?.carbs_consumed || 0,
+    carbsTarget: dashboardData?.macros?.carbs_target || 0,
+    fatsConsumed: dashboardData?.macros?.fats_consumed || 0,
+    fatsTarget: dashboardData?.macros?.fats_target || 0
   };
 
-  /* Fetch user profile for weight data */
-  const fetchUserProfile = () => {
-    if (token) {
-      fetch('http://localhost:8000/user/me', {
-        headers: { 'Authorization': `Bearer ${token}` }
-      })
-      .then(res => res.json())
-      .then(data => {
-        if (!data.detail) setUserProfile(data);
-      })
-      .catch(err => console.error('Failed to fetch user profile', err));
-    }
+  const recentIntake = dashboardData?.recent_intake || [];
+  
+  const weightMetrics = dashboardData?.weight_metrics || { 
+    current_weight: null, 
+    weight_goal: null, 
+    goal_delta: null 
   };
-
-  /* Fetch recent intake from recommendation history */
-  const fetchRecentIntake = () => {
-    if (token) {
-      fetch('http://localhost:8000/recipes/history', {
-        headers: { 'Authorization': `Bearer ${token}` }
-      })
-      .then(res => res.json())
-      .then(data => {
-        if (Array.isArray(data)) {
-          const items = data.slice(0, 5).map(entry => {
-            const recipes = entry.recommendations || [];
-            const top = recipes[0];
-            const ts = entry.created_at ? new Date(entry.created_at) : null;
-            const timeStr = ts ? ts.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '--:--';
-            const hour = ts ? ts.getHours() : 12;
-            const mealType = hour < 11 ? 'Breakfast' : hour < 15 ? 'Lunch' : hour < 18 ? 'Snack' : 'Dinner';
-            return {
-              name: top?.name || 'Unknown meal',
-              meal: mealType,
-              time: timeStr,
-              kcal: Math.round(top?.calories || 0),
-              tag: top?.diet_type || 'N/A',
-              dots: ['#3838ff', '#ff6b6b']
-            };
-          });
-          setRecentIntake(items);
-        }
-      })
-      .catch(err => console.error('Failed to fetch recent intake', err));
-    }
+  
+  const aiInsight = dashboardData?.ai_insight || {
+    quote: "Your tracking is looking solid today.",
+    detail: "Keep logging your meals to get a more accurate picture of your nutrition."
   };
-
-  useEffect(() => {
-    fetchTodaySummary();
-    fetchUserProfile();
-    fetchRecentIntake();
-  }, [token]);
 
   /* ---- Speech Recognition (Mic button) ---- */
   const toggleListening = () => {
@@ -203,28 +133,43 @@ export default function Dashboard() {
     setAnalyzeResult(null);
 
     try {
-      /* Step 1: Get AI recommendation based on the meal description */
-      const recResponse = await fetch('http://localhost:8000/recipes/recommend', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          ...(token && { 'Authorization': `Bearer ${token}` })
-        },
-        body: JSON.stringify({ query: text })
+      /* Step 1: Search recipes (fuzzy + semantic) */
+      const searchResponse = await fetch(`http://localhost:8000/recipes/search?q=${encodeURIComponent(text)}`, {
+        headers: { ...(token && { 'Authorization': `Bearer ${token}` }) }
       });
 
-      if (!recResponse.ok) throw new Error('Recommendation API failed');
+      if (!searchResponse.ok) {
+        if (searchResponse.status === 422) {
+          console.error("Validation error: Invalid search query parameters");
+        }
+        throw new Error('Search API failed');
+      }
 
-      const recipes = await recResponse.json();
+      let rawData;
+      try {
+        rawData = await searchResponse.json();
+      } catch (e) {
+        rawData = [];
+      }
 
-      if (!Array.isArray(recipes) || recipes.length === 0) {
+      // Defensive handling to ensure we always have an array
+      let recipes = [];
+      if (Array.isArray(rawData)) {
+        recipes = rawData;
+      } else if (rawData && Array.isArray(rawData.data)) {
+        recipes = rawData.data;
+      } else if (rawData && Array.isArray(rawData.recipes)) {
+        recipes = rawData.recipes;
+      }
+
+      if (recipes.length === 0) {
         setAnalyzeResult({ message: 'No matching recipe found for your meal. Try different keywords.' });
         setAnalyzeStatus('error');
         return;
       }
 
       const topRecipe = recipes[0];
-      const recipeId = topRecipe.id ?? topRecipe.recipe_id;
+      const recipeId = topRecipe.id;
 
       /* Step 2: Log the matched recipe to the daily log */
       const logResponse = await fetch('http://localhost:8000/logs/', {
@@ -239,14 +184,14 @@ export default function Dashboard() {
       if (!logResponse.ok) throw new Error('Failed to log meal');
 
       setAnalyzeResult({
-        message: `Logged "${topRecipe.name}" — ${Math.round(topRecipe.calories || 0)} kcal, ${Math.round(topRecipe.protein || 0)}g protein`,
+        message: `✅ Logged "${topRecipe.name}" | +${Math.round(topRecipe.calories || 0)} kcal, +${Math.round(topRecipe.protein || 0)}g protein`,
         recipe: topRecipe
       });
       setAnalyzeStatus('success');
       setMealInput('');
 
-      /* Step 3: Refresh dashboard stats */
-      fetchTodaySummary();
+      /* Step 3: Refresh global dashboard state */
+      if (refreshDashboard) refreshDashboard();
 
     } catch (err) {
       console.error('Analyze error:', err);
@@ -279,10 +224,10 @@ export default function Dashboard() {
     { label: 'Protein', value: `${Math.round(apiData.proteinConsumed)}g` },
   ];
 
-  /* Weight data from user profile */
-  const currentWeight = userProfile?.current_weight ?? null;
-  const weightGoal = userProfile?.weight_goal ?? null;
-  const weightDiff = (currentWeight && weightGoal) ? (currentWeight - weightGoal) : null;
+  /* Weight data from global state */
+  const currentWeight = weightMetrics.current_weight;
+  const weightGoal = weightMetrics.weight_goal;
+  const weightDiff = weightMetrics.goal_delta;
 
   /* Build calorie chart from recent intake (last 6 entries as daily proxies) */
   const dayLabels = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
@@ -341,11 +286,10 @@ export default function Dashboard() {
           <div className="dashboard__insight-body">
             <div className="dashboard__insight-text">
               <p className="dashboard__insight-quote">
-                "Your protein intake is 12% higher this week, optimizing muscle recovery."
+                "{aiInsight.quote}"
               </p>
               <p className="dashboard__insight-detail">
-                Based on your recent meal logs and biometric data, increasing your hydration by 500ml
-                before your afternoon workout could further enhance metabolism.
+                {aiInsight.detail}
               </p>
             </div>
             <Brain size={48} className="dashboard__insight-icon" />

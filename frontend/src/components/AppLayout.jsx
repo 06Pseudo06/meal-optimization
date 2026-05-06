@@ -15,32 +15,35 @@ import { useState } from 'react';
 import Sidebar from './Sidebar';
 import Navbar from './Navbar';
 import './AppLayout.css';
+import { DashboardProvider } from '../context/DashboardContext';
 
 export default function AppLayout({ children, pageTitle }) {
   /* Sidebar open state — only relevant on mobile */
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
   return (
-    <div className="app-layout">
-      {/* Sidebar — same instance across all pages */}
-      <Sidebar
-        isOpen={sidebarOpen}
-        onClose={() => setSidebarOpen(false)}
-      />
-
-      {/* Main content area (right of sidebar) */}
-      <div className="app-layout__main">
-        {/* Top navbar with search and profile */}
-        <Navbar
-          pageTitle={pageTitle}
-          onToggleSidebar={() => setSidebarOpen(!sidebarOpen)}
+    <DashboardProvider>
+      <div className="app-layout">
+        {/* Sidebar — same instance across all pages */}
+        <Sidebar
+          isOpen={sidebarOpen}
+          onClose={() => setSidebarOpen(false)}
         />
 
-        {/* Page content — each page renders here */}
-        <main className="app-layout__content">
-          {children}
-        </main>
+        {/* Main content area (right of sidebar) */}
+        <div className="app-layout__main">
+          {/* Top navbar with search and profile */}
+          <Navbar
+            pageTitle={pageTitle}
+            onToggleSidebar={() => setSidebarOpen(!sidebarOpen)}
+          />
+
+          {/* Page content — each page renders here */}
+          <main className="app-layout__content">
+            {children}
+          </main>
+        </div>
       </div>
-    </div>
+    </DashboardProvider>
   );
 }

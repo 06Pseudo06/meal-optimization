@@ -8,6 +8,7 @@ from app.api.user_routes import router as user_router
 from app.api.log_routes import router as log_router
 from app.api.recipe_routes import router as recipe_router
 from app.api.auth_routes import router as auth_router
+from app.api.dashboard_routes import router as dashboard_router
 from app.api import recommendation_routes
 from app.api import system
 
@@ -148,5 +149,6 @@ app.include_router(user_router)
 app.include_router(log_router)
 app.include_router(recommendation_routes.router)
 app.include_router(recipe_router)
+app.include_router(dashboard_router)
 app.include_router(system.router, tags=["system"])
 app.include_router(auth_router)

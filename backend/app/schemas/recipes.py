@@ -13,7 +13,7 @@ class RecipeBase(BaseModel):
     carbs: Optional[float] = None
     fats: Optional[float] = None
     diet_type: Optional[str] = None
-    tags: Optional[str] = None
+    tags: Optional[list] = None
 
 
 class RecipeCreate(RecipeBase):
@@ -27,7 +27,7 @@ class RecipeUpdate(BaseModel):
     carbs: Optional[float] = None
     fats: Optional[float] = None
     diet_type: Optional[str] = None
-    tags: Optional[str] = None
+    tags: Optional[list] = None
 
 
 class RecipeOut(RecipeBase):
